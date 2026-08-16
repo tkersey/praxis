@@ -1,11 +1,53 @@
 const std = @import("std");
 const agent = @import("agent");
 const boundary = @import("boundary");
+const release_sources = @import("release_sources");
 
 const TestRequest = struct { suite: u8 };
 const TestResult = struct { passed: bool };
-const ReplaceRequest = struct { marker: u8 };
-const ReplaceOutcome = enum { applied, denied, conflict };
+const Path = boundary.Text(256);
+const FileText = boundary.Text(16 * 1024);
+const SummaryText = boundary.Text(4 * 1024);
+const ReasonText = boundary.Text(512);
+const DigestHex = boundary.Text(64);
+
+const DocumentSnapshot = struct {
+    path: Path,
+    sha256: DigestHex,
+    contents: FileText,
+};
+
+const ReplaceRequest = struct {
+    path: Path,
+    expected_sha256: DigestHex,
+    replacement: FileText,
+    rationale: SummaryText,
+};
+
+const ReplaceApplied = struct {
+    path: Path,
+    old_sha256: DigestHex,
+    new_sha256: DigestHex,
+    already_applied: bool,
+    current: DocumentSnapshot,
+};
+
+const ReplaceDenied = struct {
+    path: Path,
+    reason: ReasonText,
+};
+
+const ReplaceConflict = struct {
+    path: Path,
+    expected_sha256: DigestHex,
+    actual_sha256: DigestHex,
+};
+
+const ReplaceOutcome = union(enum) {
+    applied: ReplaceApplied,
+    denied: ReplaceDenied,
+    conflict: ReplaceConflict,
+};
 
 const RunTests = boundary.effect.site(1, "repo.test.v2", TestRequest, TestResult);
 const ReplaceFile = boundary.effect.site(
@@ -51,8 +93,8 @@ const Definition = agent.define(.{
     .Failure = Failure,
     .decision = .{
         .interface = "model.decide.v1",
-        .maximum_request_bytes = 4096,
-        .maximum_result_bytes = 1024,
+        .maximum_request_bytes = 256 * 1024,
+        .maximum_result_bytes = 24 * 1024,
     },
     .actions = .{
         agent.action.effect(.run_tests, .run_tests, RunTests, .{
@@ -183,9 +225,9 @@ const Compiled = agent.compile(
     Epistemics,
     .{
         .machine = .{
-            .maximum_frames = 16,
-            .maximum_state_bytes = 64 * 1024,
-            .maximum_machine_fuel = 4096,
+            .maximum_frames = 48,
+            .maximum_state_bytes = 511 * 1024,
+            .maximum_machine_fuel = 8_000_000,
         },
     },
 );
@@ -198,12 +240,39 @@ fn resumeRequest(state: *Machine.State, request: Machine.Request, value: anytype
     try Machine.@"resume"(prepared, value);
 }
 
+fn digest() !DigestHex {
+    return DigestHex.fromSlice(
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    );
+}
+
+fn replacementAction() !Action {
+    return .{ .replace_file = .{
+        .path = try Path.fromSlice("src/example.zig"),
+        .expected_sha256 = try digest(),
+        .replacement = try FileText.fromSlice("const corrected = true;\n"),
+        .rationale = try SummaryText.fromSlice("Exercise the exact Praxis replacement contract."),
+    } };
+}
+
 test "Agent v2.2.0 reaches replacement before the baseline test invariant" {
     try std.testing.expectEqual(@as(u32, 2), Machine.abi_version);
     try std.testing.expectEqualSlices(u8, "ABL_RNF2", &Machine.Manifest.state_image_magic);
     try std.testing.expectEqualStrings(
         "repo.replace.approved.v2",
         Compiled.ActionSites[2].semantic_identity,
+    );
+    try std.testing.expect(Machine.EffectRow.site(2).Payload == ReplaceRequest);
+    try std.testing.expect(Machine.EffectRow.site(2).Resume == ReplaceOutcome);
+    var expected_contract_digest: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(
+        &expected_contract_digest,
+        "79b6bb298d086961b13d97cc7e4ed6a23f6694320d9d66a67b296ee026524dcf",
+    );
+    try std.testing.expectEqualSlices(
+        u8,
+        &expected_contract_digest,
+        &Machine.EffectRow.site(2).semantic_contract_digest,
     );
 
     var state = try Machine.initialState(std.testing.allocator, @as(void, {}));
@@ -219,14 +288,17 @@ test "Agent v2.2.0 reaches replacement before the baseline test invariant" {
         else => return error.ExpectedDecisionRequest,
     }
 
-    try resumeRequest(&state, decision, Action{ .replace_file = .{ .marker = 7 } });
+    try resumeRequest(&state, decision, try replacementAction());
 
     const effect = switch (try Machine.step(state, &fuel)) {
         .request => |request| request,
         else => return error.UnexpectedMachineStep,
     };
     switch (effect.value) {
-        .s2 => |payload| try std.testing.expectEqual(@as(u8, 7), payload.marker),
+        .s2 => |payload| {
+            try std.testing.expectEqualStrings("src/example.zig", try payload.path.slice());
+            try std.testing.expectEqualStrings("const corrected = true;\n", try payload.replacement.slice());
+        },
         else => return error.ExpectedReplacementRequest,
     }
 }
@@ -256,4 +328,29 @@ test "the custom Memory does record an observed baseline test" {
         .s0 => |turn| try std.testing.expect(turn.context.baseline_test_observed),
         else => return error.ExpectedDecisionRequest,
     }
+}
+
+test "the check target binds the exact frozen lock and Agent package" {
+    var lock_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(
+        release_sources.reference_stack_lock,
+        &lock_digest,
+        .{},
+    );
+    var expected_lock_digest: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(
+        &expected_lock_digest,
+        "d159b0c9a2075cc57d38fa893db68ae416ff68e3988cc8632ae91a3f42853aba",
+    );
+    try std.testing.expectEqualSlices(u8, &expected_lock_digest, &lock_digest);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        release_sources.package_manifest,
+        "https://github.com/tkersey/agent/archive/refs/tags/v2.2.0.tar.gz",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        release_sources.package_manifest,
+        "agent-2.2.0-dBg3hEHJDABT5usyJGH7PowXTWmpI3rhYXszl6sMz1BV",
+    ) != null);
 }

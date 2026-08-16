@@ -13,7 +13,9 @@ pre-effect admission invariant.
 
 The counterexample uses Zig 0.16.0 and the exact public Agent v2.2.0 package hash in
 `build.zig.zon`. The complete frozen tuple is in
-`conformance/praxis-v1/reference-stack.lock.json`.
+`conformance/praxis-v1/reference-stack.lock.json`. The check target hashes and
+exact-matches that lock and verifies that the package manifest contains the bound
+Agent release URL and package hash.
 
 ## Executable counterexample
 
@@ -29,8 +31,11 @@ a `replace_file` action, and observes the next Machine request. That request is
 `repo.replace.approved.v2`. The witness stops there: no capability is invoked and no
 repository file is written.
 
-This is a runtime reachability proof, not source inference. It also asserts Machine
-ABI 2, `ABL_RNF2`, and the residual effect semantic identity.
+The request uses the complete Praxis v1 `ReplaceRequest` and `ReplaceOutcome` types,
+including digest-bound replacement, denial, conflict, and current-snapshot fields.
+The test asserts their Boundary semantic contract digest in addition to Machine ABI
+2, `ABL_RNF2`, and the residual effect semantic identity. This is a runtime
+reachability proof, not source inference.
 
 ## Owner
 

@@ -14,6 +14,14 @@ pub fn build(b: *std.Build) void {
     });
     witness.addImport("agent", agent_dependency.module("agent"));
     witness.addImport("boundary", agent_dependency.module("boundary"));
+    const release_sources = b.addOptions();
+    release_sources.addOption(
+        []const u8,
+        "reference_stack_lock",
+        @embedFile("conformance/praxis-v1/reference-stack.lock.json"),
+    );
+    release_sources.addOption([]const u8, "package_manifest", @embedFile("build.zig.zon"));
+    witness.addOptions("release_sources", release_sources);
 
     const tests = b.addTest(.{ .root_module = witness });
     const check = b.step("check", "Run the Praxis v1 Agent obstruction witness");
