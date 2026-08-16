@@ -211,6 +211,19 @@ const WorkingSet = struct {
         return flow.copy(memory);
     }
 
+    pub fn emitActionAllowed(
+        comptime _: type,
+        comptime _: anytype,
+        flow: anytype,
+        memory: anytype,
+        action: anytype,
+        comptime _: anytype,
+    ) agent.Value(bool) {
+        const replacing = flow.sumTagIs(1, action);
+        const baseline_test_observed = flow.productExtract(0, memory);
+        return flow.booleanOr(flow.booleanNot(replacing), baseline_test_observed);
+    }
+
     pub fn emitFinalAllowed(
         comptime _: type,
         comptime _: anytype,
@@ -432,7 +445,7 @@ fn parseObstructionResult(text: []const u8) !ObstructionResult {
     return parsed;
 }
 
-test "Agent v2.2.0 reaches replacement before the baseline test invariant" {
+test "Agent v2.3.0 rejects replacement before the baseline test invariant" {
     try std.testing.expectEqual(@as(u32, 2), Machine.abi_version);
     try std.testing.expectEqualSlices(u8, "ABL_RNF2", &Machine.Manifest.state_image_magic);
     try std.testing.expectEqualStrings(
@@ -467,16 +480,16 @@ test "Agent v2.2.0 reaches replacement before the baseline test invariant" {
 
     try resumeRequest(&state, decision, try replacementAction());
 
-    const effect = switch (try Machine.step(state, &fuel)) {
-        .request => |request| request,
-        else => return error.UnexpectedMachineStep,
-    };
-    switch (effect.value) {
-        .s2 => |payload| {
-            try std.testing.expectEqualStrings("src/example.zig", try payload.path.slice());
-            try std.testing.expectEqualStrings("const corrected = true;\n", try payload.replacement.slice());
+    switch (try Machine.step(state, &fuel)) {
+        .failed => |failure| switch (failure) {
+            .authored => |authored| try std.testing.expectEqual(
+                Failure.invalid_variant,
+                authored,
+            ),
+            else => return error.ExpectedAuthoredAdmissionFailure,
         },
-        else => return error.ExpectedReplacementRequest,
+        .request => return error.ForbiddenReplacementRequest,
+        else => return error.ExpectedAdmissionFailure,
     }
 }
 
@@ -517,7 +530,7 @@ test "the check target binds the exact frozen lock and Agent package" {
     var expected_lock_digest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected_lock_digest,
-        "d159b0c9a2075cc57d38fa893db68ae416ff68e3988cc8632ae91a3f42853aba",
+        "bcb062bcd3680a0a254a880cf5210c3f4a4a84a87bb855e1eb72e644269235a2",
     );
     try std.testing.expectEqualSlices(u8, &expected_lock_digest, &lock_digest);
     var manifest_digest: [32]u8 = undefined;
@@ -529,7 +542,7 @@ test "the check target binds the exact frozen lock and Agent package" {
     var expected_manifest_digest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected_manifest_digest,
-        "d6fb403ea24241db6a11437a65a7663e9e534394e9419941360a4242bc9dd913",
+        "d0bc3b7e57448aea2a1a1ffeb57a913821df5f3c2e8e2fdb67295bcdef270371",
     );
     try std.testing.expectEqualSlices(u8, &expected_manifest_digest, &manifest_digest);
 
@@ -616,7 +629,7 @@ test "the check target binds the exact frozen lock and Agent package" {
     );
 }
 
-test "the published obstruction result matches the executable witness" {
+test "the published obstruction result remains bound to the historical tuple" {
     const parsed_lock = try std.json.parseFromSlice(
         ReferenceStackLock,
         std.testing.allocator,
@@ -655,7 +668,8 @@ test "the published obstruction result matches the executable witness" {
         "zig build check --summary all",
         result.reproducer,
     );
-    try std.testing.expectEqualStrings(lock.tuple.agent, result.released_agent);
+    try std.testing.expectEqualStrings("2.2.0", result.released_agent);
+    try std.testing.expect(!std.mem.eql(u8, lock.tuple.agent, result.released_agent));
     const result_machine_abi = try std.fmt.parseInt(
         u32,
         result.boundary_machine_abi,

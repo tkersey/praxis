@@ -2,17 +2,24 @@
 
 Praxis applies the released Boundary → World → Agent stack to external software work.
 
-Praxis v1 is currently stopped by a preserved Agent v2.2.0 obstruction: a custom
-epistemic strategy can reject a terminal result, but cannot reject an effect action
-before the compiler emits that effect. The executable counterexample reaches a
-replacement request while Memory says no baseline test has been observed.
+Praxis v1 now consumes Agent v2.3.0, whose typed pre-effect action-admission
+seam resolves the preserved Agent v2.2.0 obstruction. The executable regression
+witness proves that a replacement is rejected before an effect request when
+Memory says no baseline test has been observed.
 
-Run the counterexample with the exact released dependency:
+Run the current regression proof with the exact released dependency:
 
 ```sh
 zig build check --summary all
 ```
 
-The counterexample neither invokes a repository capability nor writes a file. See
+The regression proof neither invokes a repository capability nor writes a file.
+The original counterexample and owner analysis remain preserved at
 [`conformance/praxis-v1/obstructions/agent-pre-effect-admission/README.md`](conformance/praxis-v1/obstructions/agent-pre-effect-admission/README.md)
-for the owner analysis and smallest required upstream semantic change.
+as historical evidence.
+
+Full Memory admission is now stopped at the next preserved owner-specific
+obstruction: Agent Flow does not expose Boundary's existing `text_compare`
+operation, so the application cannot compare exact `Path` and digest values.
+See
+[`conformance/praxis-v1/obstructions/agent-text-comparison/README.md`](conformance/praxis-v1/obstructions/agent-text-comparison/README.md).

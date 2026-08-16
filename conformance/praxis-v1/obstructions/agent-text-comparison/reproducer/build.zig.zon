@@ -1,6 +1,6 @@
 .{
-    .name = .praxis,
-    .version = "1.0.0",
+    .name = .praxis_text_compare_repro,
+    .version = "0.0.0",
     .dependencies = .{
         .agent = .{
             .url = "https://github.com/tkersey/agent/archive/refs/tags/v2.3.0.tar.gz",
@@ -8,14 +8,11 @@
         },
     },
     .minimum_zig_version = "0.16.0",
-    .fingerprint = 0x9db9462b8b297b90,
+    .fingerprint = 0xa494b2b6eabbaf06,
     .paths = .{
-        ".github",
-        "LICENSE",
-        "README.md",
         "build.zig",
         "build.zig.zon",
-        "conformance",
-        "src",
+        "main.zig",
+        "verify.mjs",
     },
 }
