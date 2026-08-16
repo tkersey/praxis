@@ -277,16 +277,43 @@ fn quotedValueAfter(text: []const u8, section: []const u8, key: []const u8) ![]c
     return value[0..value_end];
 }
 
-fn unsignedValueAfter(text: []const u8, section: []const u8, key: []const u8) !u32 {
-    const section_start = std.mem.indexOf(u8, text, section) orelse
-        return error.MissingSection;
-    const section_text = text[section_start..];
-    const key_start = std.mem.indexOf(u8, section_text, key) orelse
-        return error.MissingKey;
-    const value = section_text[key_start + key.len ..];
-    const value_end = std.mem.indexOfAny(u8, value, ",\n") orelse value.len;
-    return std.fmt.parseInt(u32, std.mem.trim(u8, value[0..value_end], " \t\r"), 10);
-}
+const SourceArchive = struct {
+    url: []const u8,
+    sha256: []const u8,
+    packageHash: []const u8,
+    root: []const u8,
+};
+
+const RuntimeArchive = struct {
+    url: []const u8,
+    sha256: []const u8,
+    root: []const u8,
+};
+
+const ReferenceStackLock = struct {
+    format: []const u8,
+    tuple: struct {
+        agent: []const u8,
+        boundary: []const u8,
+        world: []const u8,
+        worldHost: []const u8,
+        worldCapabilities: []const u8,
+        zig: []const u8,
+        machineAbi: u32,
+        machineStateFormat: []const u8,
+        applicationAbi: u32,
+        frame: u32,
+        effectProtocol: u32,
+        maximumPendingEffects: u32,
+    },
+    archives: struct {
+        agent: SourceArchive,
+        boundary: SourceArchive,
+        world: SourceArchive,
+        worldHost: RuntimeArchive,
+        worldCapabilities: RuntimeArchive,
+    },
+};
 
 const ArchiveKind = enum {
     source,
@@ -295,15 +322,12 @@ const ArchiveKind = enum {
 };
 
 fn expectArchiveVersionBound(
-    lock: []const u8,
-    tuple_key: []const u8,
-    archive_section: []const u8,
+    version: []const u8,
+    archive_url: []const u8,
+    archive_root: []const u8,
     repository: []const u8,
     kind: ArchiveKind,
 ) !void {
-    const version = try quotedValueAfter(lock, "\"tuple\": {", tuple_key);
-    const archive_url = try quotedValueAfter(lock, archive_section, "\"url\": \"");
-    const archive_root = try quotedValueAfter(lock, archive_section, "\"root\": \"");
     var expected_url_buffer: [256]u8 = undefined;
     const expected_url = switch (kind) {
         .source => try std.fmt.bufPrint(
@@ -461,16 +485,16 @@ test "the check target binds the exact frozen lock and Agent package" {
     );
     try std.testing.expectEqualSlices(u8, &expected_manifest_digest, &manifest_digest);
 
-    const lock_agent_url = try quotedValueAfter(
+    const parsed_lock = try std.json.parseFromSlice(
+        ReferenceStackLock,
+        std.testing.allocator,
         release_sources.reference_stack_lock,
-        "\"agent\": {",
-        "\"url\": \"",
+        .{},
     );
-    const lock_agent_hash = try quotedValueAfter(
-        release_sources.reference_stack_lock,
-        "\"agent\": {",
-        "\"packageHash\": \"",
-    );
+    defer parsed_lock.deinit();
+    const lock = parsed_lock.value;
+    try std.testing.expectEqualStrings("praxis-reference-stack-lock-v1", lock.format);
+
     const manifest_agent_url = try quotedValueAfter(
         release_sources.package_manifest,
         ".agent = .{",
@@ -480,16 +504,6 @@ test "the check target binds the exact frozen lock and Agent package" {
         release_sources.package_manifest,
         ".agent = .{",
         ".hash = \"",
-    );
-    const lock_boundary_url = try quotedValueAfter(
-        release_sources.reference_stack_lock,
-        "\"boundary\": {",
-        "\"url\": \"",
-    );
-    const lock_boundary_hash = try quotedValueAfter(
-        release_sources.reference_stack_lock,
-        "\"boundary\": {",
-        "\"packageHash\": \"",
     );
     const agent_boundary_url = try quotedValueAfter(
         release_sources.agent_package_manifest,
@@ -501,16 +515,6 @@ test "the check target binds the exact frozen lock and Agent package" {
         ".boundary = .{",
         ".hash = \"",
     );
-    const lock_world_url = try quotedValueAfter(
-        release_sources.reference_stack_lock,
-        "\"world\": {",
-        "\"url\": \"",
-    );
-    const lock_world_hash = try quotedValueAfter(
-        release_sources.reference_stack_lock,
-        "\"world\": {",
-        "\"packageHash\": \"",
-    );
     const agent_world_url = try quotedValueAfter(
         release_sources.agent_package_manifest,
         ".world = .{",
@@ -521,90 +525,73 @@ test "the check target binds the exact frozen lock and Agent package" {
         ".world = .{",
         ".hash = \"",
     );
-    try std.testing.expectEqualStrings(lock_agent_url, manifest_agent_url);
-    try std.testing.expectEqualStrings(lock_agent_hash, manifest_agent_hash);
-    try std.testing.expectEqualStrings(lock_boundary_url, agent_boundary_url);
-    try std.testing.expectEqualStrings(lock_boundary_hash, agent_boundary_hash);
-    try std.testing.expectEqualStrings(lock_world_url, agent_world_url);
-    try std.testing.expectEqualStrings(lock_world_hash, agent_world_hash);
+    try std.testing.expectEqualStrings(lock.archives.agent.url, manifest_agent_url);
+    try std.testing.expectEqualStrings(lock.archives.agent.packageHash, manifest_agent_hash);
+    try std.testing.expectEqualStrings(lock.archives.boundary.url, agent_boundary_url);
+    try std.testing.expectEqualStrings(lock.archives.boundary.packageHash, agent_boundary_hash);
+    try std.testing.expectEqualStrings(lock.archives.world.url, agent_world_url);
+    try std.testing.expectEqualStrings(lock.archives.world.packageHash, agent_world_hash);
     try expectArchiveVersionBound(
-        release_sources.reference_stack_lock,
-        "\"agent\": \"",
-        "\"agent\": {",
+        lock.tuple.agent,
+        lock.archives.agent.url,
+        lock.archives.agent.root,
         "agent",
         .source,
     );
     try expectArchiveVersionBound(
-        release_sources.reference_stack_lock,
-        "\"boundary\": \"",
-        "\"boundary\": {",
+        lock.tuple.boundary,
+        lock.archives.boundary.url,
+        lock.archives.boundary.root,
         "boundary",
         .source,
     );
     try expectArchiveVersionBound(
-        release_sources.reference_stack_lock,
-        "\"world\": \"",
-        "\"world\": {",
+        lock.tuple.world,
+        lock.archives.world.url,
+        lock.archives.world.root,
         "world",
         .source,
     );
     try expectArchiveVersionBound(
-        release_sources.reference_stack_lock,
-        "\"worldHost\": \"",
-        "\"worldHost\": {",
+        lock.tuple.worldHost,
+        lock.archives.worldHost.url,
+        lock.archives.worldHost.root,
         "world-host",
         .runtime,
     );
     try expectArchiveVersionBound(
-        release_sources.reference_stack_lock,
-        "\"worldCapabilities\": \"",
-        "\"worldCapabilities\": {",
+        lock.tuple.worldCapabilities,
+        lock.archives.worldCapabilities.url,
+        lock.archives.worldCapabilities.root,
         "world-capabilities",
         .deterministic,
     );
 }
 
 test "the published obstruction result matches the executable witness" {
-    const lock_agent_version = try quotedValueAfter(
+    const parsed_lock = try std.json.parseFromSlice(
+        ReferenceStackLock,
+        std.testing.allocator,
         release_sources.reference_stack_lock,
-        "\"tuple\": {",
-        "\"agent\": \"",
+        .{},
     );
-    const lock_boundary_version = try quotedValueAfter(
-        release_sources.reference_stack_lock,
-        "\"tuple\": {",
-        "\"boundary\": \"",
-    );
-    const lock_zig_version = try quotedValueAfter(
-        release_sources.reference_stack_lock,
-        "\"tuple\": {",
-        "\"zig\": \"",
-    );
-    const lock_machine_state = try quotedValueAfter(
-        release_sources.reference_stack_lock,
-        "\"tuple\": {",
-        "\"machineStateFormat\": \"",
-    );
-    const lock_machine_abi = try unsignedValueAfter(
-        release_sources.reference_stack_lock,
-        "\"tuple\": {",
-        "\"machineAbi\": ",
-    );
-    try std.testing.expectEqualStrings(agent.package_version, lock_agent_version);
+    defer parsed_lock.deinit();
+    const lock = parsed_lock.value;
+    try std.testing.expectEqualStrings(agent.package_version, lock.tuple.agent);
     var zig_version_buffer: [64]u8 = undefined;
     const active_zig_version = try std.fmt.bufPrint(
         &zig_version_buffer,
         "{f}",
         .{builtin.zig_version},
     );
-    try std.testing.expectEqualStrings(active_zig_version, lock_zig_version);
-    try std.testing.expectEqual(Machine.abi_version, lock_machine_abi);
-    try std.testing.expectEqualStrings(&Machine.Manifest.state_image_magic, lock_machine_state);
+    try std.testing.expectEqualStrings(active_zig_version, lock.tuple.zig);
+    try std.testing.expectEqual(Machine.abi_version, lock.tuple.machineAbi);
+    try std.testing.expectEqualStrings(&Machine.Manifest.state_image_magic, lock.tuple.machineStateFormat);
     var boundary_identity_buffer: [128]u8 = undefined;
     const boundary_identity = try std.fmt.bufPrint(
         &boundary_identity_buffer,
         "tkersey/boundary@v{s}",
-        .{lock_boundary_version},
+        .{lock.tuple.boundary},
     );
     var expected_boundary_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(boundary_identity, &expected_boundary_digest, .{});
@@ -619,7 +606,7 @@ test "the published obstruction result matches the executable witness" {
         "zig build check --summary all",
         try resultValue("reproducer"),
     );
-    try std.testing.expectEqualStrings(lock_agent_version, try resultValue("released_agent"));
+    try std.testing.expectEqualStrings(lock.tuple.agent, try resultValue("released_agent"));
     const result_machine_abi = try std.fmt.parseInt(
         u32,
         try resultValue("boundary_machine_abi"),

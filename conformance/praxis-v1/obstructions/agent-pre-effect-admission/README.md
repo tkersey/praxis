@@ -17,8 +17,9 @@ The counterexample uses Zig 0.16.0 and the exact public Agent v2.2.0 package has
 exact-matches both that lock and the complete package manifest, which prevents
 stale release strings from masking an active dependency change. The build entrypoint
 rejects any Zig version other than exact `0.16.0` before compiling the witness.
-The check also compares the active Agent URL and package hash across the lock and
-manifest, reads the pinned Agent package's own dependency manifest, and compares
+The check parses the lock with strict duplicate, unknown, and missing-field rejection,
+compares the active Agent URL and package hash across the lock and manifest, reads
+the pinned Agent package's own dependency manifest, and compares
 its exact Boundary and World release URLs and package hashes with the lock. It also
 derives every Agent, Boundary, World, world-host, and world-capabilities archive URL
 and root from its tuple version and requires exact equality. The lock's Agent version
