@@ -18,9 +18,13 @@ exact-matches both that lock and the complete package manifest, which prevents
 stale release strings from masking an active dependency change. The build entrypoint
 rejects any Zig version other than exact `0.16.0` before compiling the witness.
 The check also compares the active Agent URL and package hash across the lock and
-manifest, then verifies the published `result.txt` owner, release, ABI, state format,
-and non-completion fields against the executable witness. Git pins those embedded
-artifacts to LF bytes, and result fields are matched as exact, unique keys.
+manifest, compares the lock's Agent version with the imported package version, and
+compares the lock's Boundary version with the compiled Agent manifest's Boundary
+identity. It then verifies the published `result.txt` owner, release, ABI, state
+format, and non-completion fields against the executable witness. Git pins those
+embedded artifacts to LF bytes, and result fields are matched as exact, unique keys.
+World, world-host, and world-capabilities remain exact retained lock entries but are
+not loaded by this minimized Agent-compiler owner reproducer.
 
 ## Executable counterexample
 
@@ -34,7 +38,9 @@ The test initializes a compiled Agent Machine whose Memory says
 `baseline_test_observed = false`, resumes the first `model.decide.v1` request with
 a `replace_file` action, and observes the next Machine request. That request is
 `repo.replace.approved.v2`. The witness stops there: no capability is invoked and no
-repository file is written.
+repository file is written. Its minimal fold clears the baseline flag after any
+replacement observation; it is not a substitute implementation of Praxis's full
+mutation-count Memory.
 
 The request uses the complete Praxis v1 `ReplaceRequest` and `ReplaceOutcome` types,
 including digest-bound replacement, denial, conflict, and current-snapshot fields.

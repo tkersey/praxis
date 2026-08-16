@@ -192,7 +192,11 @@ const WorkingSet = struct {
                 memory,
                 flow.constant(bool, context.true_index),
             ),
-            1 => flow.copy(memory),
+            1 => flow.productReplace(
+                0,
+                memory,
+                flow.constant(bool, context.false_index),
+            ),
             else => unreachable,
         };
     }
@@ -418,6 +422,25 @@ test "the published obstruction result matches the executable witness" {
         release_sources.reference_stack_lock,
         "\"tuple\": {",
         "\"agent\": \"",
+    );
+    const lock_boundary_version = try quotedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"tuple\": {",
+        "\"boundary\": \"",
+    );
+    try std.testing.expectEqualStrings(agent.package_version, lock_agent_version);
+    var boundary_identity_buffer: [128]u8 = undefined;
+    const boundary_identity = try std.fmt.bufPrint(
+        &boundary_identity_buffer,
+        "tkersey/boundary@v{s}",
+        .{lock_boundary_version},
+    );
+    var expected_boundary_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(boundary_identity, &expected_boundary_digest, .{});
+    try std.testing.expectEqualSlices(
+        u8,
+        &expected_boundary_digest,
+        &Compiled.Manifest.boundary_package_digest,
     );
     try std.testing.expectEqualStrings("praxis_obstruction", try resultValue("result"));
     try std.testing.expectEqualStrings("agent-compiler", try resultValue("owner"));
