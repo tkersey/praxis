@@ -288,6 +288,62 @@ fn unsignedValueAfter(text: []const u8, section: []const u8, key: []const u8) !u
     return std.fmt.parseInt(u32, std.mem.trim(u8, value[0..value_end], " \t\r"), 10);
 }
 
+const ArchiveKind = enum {
+    source,
+    runtime,
+    deterministic,
+};
+
+fn expectArchiveVersionBound(
+    lock: []const u8,
+    tuple_key: []const u8,
+    archive_section: []const u8,
+    repository: []const u8,
+    kind: ArchiveKind,
+) !void {
+    const version = try quotedValueAfter(lock, "\"tuple\": {", tuple_key);
+    const archive_url = try quotedValueAfter(lock, archive_section, "\"url\": \"");
+    const archive_root = try quotedValueAfter(lock, archive_section, "\"root\": \"");
+    var expected_url_buffer: [256]u8 = undefined;
+    const expected_url = switch (kind) {
+        .source => try std.fmt.bufPrint(
+            &expected_url_buffer,
+            "https://github.com/tkersey/{s}/archive/refs/tags/v{s}.tar.gz",
+            .{ repository, version },
+        ),
+        .runtime => try std.fmt.bufPrint(
+            &expected_url_buffer,
+            "https://github.com/tkersey/{s}/releases/download/v{s}/{s}-v{s}-runtime.tar.gz",
+            .{ repository, version, repository, version },
+        ),
+        .deterministic => try std.fmt.bufPrint(
+            &expected_url_buffer,
+            "https://github.com/tkersey/{s}/releases/download/v{s}/{s}-v{s}-deterministic.tar.gz",
+            .{ repository, version, repository, version },
+        ),
+    };
+    var expected_root_buffer: [128]u8 = undefined;
+    const expected_root = switch (kind) {
+        .source => try std.fmt.bufPrint(
+            &expected_root_buffer,
+            "{s}-{s}",
+            .{ repository, version },
+        ),
+        .runtime => try std.fmt.bufPrint(
+            &expected_root_buffer,
+            "{s}-v{s}-runtime",
+            .{ repository, version },
+        ),
+        .deterministic => try std.fmt.bufPrint(
+            &expected_root_buffer,
+            "{s}-v{s}-deterministic",
+            .{ repository, version },
+        ),
+    };
+    try std.testing.expectEqualStrings(expected_url, archive_url);
+    try std.testing.expectEqualStrings(expected_root, archive_root);
+}
+
 fn resultValueFrom(text: []const u8, key: []const u8) ![]const u8 {
     var found: ?[]const u8 = null;
     var lines = std.mem.splitScalar(u8, text, '\n');
@@ -471,6 +527,41 @@ test "the check target binds the exact frozen lock and Agent package" {
     try std.testing.expectEqualStrings(lock_boundary_hash, agent_boundary_hash);
     try std.testing.expectEqualStrings(lock_world_url, agent_world_url);
     try std.testing.expectEqualStrings(lock_world_hash, agent_world_hash);
+    try expectArchiveVersionBound(
+        release_sources.reference_stack_lock,
+        "\"agent\": \"",
+        "\"agent\": {",
+        "agent",
+        .source,
+    );
+    try expectArchiveVersionBound(
+        release_sources.reference_stack_lock,
+        "\"boundary\": \"",
+        "\"boundary\": {",
+        "boundary",
+        .source,
+    );
+    try expectArchiveVersionBound(
+        release_sources.reference_stack_lock,
+        "\"world\": \"",
+        "\"world\": {",
+        "world",
+        .source,
+    );
+    try expectArchiveVersionBound(
+        release_sources.reference_stack_lock,
+        "\"worldHost\": \"",
+        "\"worldHost\": {",
+        "world-host",
+        .runtime,
+    );
+    try expectArchiveVersionBound(
+        release_sources.reference_stack_lock,
+        "\"worldCapabilities\": \"",
+        "\"worldCapabilities\": {",
+        "world-capabilities",
+        .deterministic,
+    );
 }
 
 test "the published obstruction result matches the executable witness" {

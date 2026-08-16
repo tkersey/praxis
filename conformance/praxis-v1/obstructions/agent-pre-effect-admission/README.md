@@ -20,10 +20,12 @@ rejects any Zig version other than exact `0.16.0` before compiling the witness.
 The check also compares the active Agent URL and package hash across the lock and
 manifest, reads the pinned Agent package's own dependency manifest, and compares
 its exact Boundary and World release URLs and package hashes with the lock. It also
-compares the lock's Agent version with the imported package version and the lock's
-Boundary version with the compiled Agent manifest's Boundary identity. The lock's
-Zig version, Machine ABI, and Machine state format are compared directly with the
-active toolchain and compiled Machine. The check then verifies the published
+derives every Agent, Boundary, World, world-host, and world-capabilities archive URL
+and root from its tuple version and requires exact equality. The lock's Agent version
+is compared with the imported package version, and its Boundary version is compared
+with the compiled Agent manifest's Boundary identity. The lock's Zig version,
+Machine ABI, and Machine state format are compared directly with the active toolchain
+and compiled Machine. The check then verifies the published
 `result.txt` owner, release, ABI, state format, and non-completion fields against the
 executable witness. Git pins those embedded artifacts to LF bytes, and result fields
 are matched as exact, unique keys. World is resolved through Agent's pinned package
