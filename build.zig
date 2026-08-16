@@ -46,6 +46,11 @@ pub fn build(b: *std.Build) void {
     witness.addOptions("release_sources", release_sources);
 
     const tests = b.addTest(.{ .root_module = witness });
-    const check = b.step("check", "Run the Praxis v1 Agent obstruction witness");
+    const check = b.step("check", "Run the Praxis v1 Agent action-admission regression proof");
     check.dependOn(&b.addRunArtifact(tests).step);
+    const text_comparison_obstruction = b.addSystemCommand(&.{
+        "node",
+        "conformance/praxis-v1/obstructions/agent-text-comparison/reproducer/verify.mjs",
+    });
+    check.dependOn(&text_comparison_obstruction.step);
 }
