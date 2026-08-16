@@ -24,12 +24,20 @@ pub fn build(b: *std.Build) void {
     witness.addImport("agent", agent_dependency.module("agent"));
     witness.addImport("boundary", agent_dependency.module("boundary"));
     const release_sources = b.addOptions();
+    const agent_manifest_path = agent_dependency.path("build.zig.zon").getPath3(b, null);
+    const agent_manifest = agent_manifest_path.root_dir.handle.readFileAlloc(
+        b.graph.io,
+        agent_manifest_path.sub_path,
+        b.allocator,
+        .limited(64 * 1024),
+    ) catch @panic("unable to read the pinned Agent package manifest");
     release_sources.addOption(
         []const u8,
         "reference_stack_lock",
         @embedFile("conformance/praxis-v1/reference-stack.lock.json"),
     );
     release_sources.addOption([]const u8, "package_manifest", @embedFile("build.zig.zon"));
+    release_sources.addOption([]const u8, "agent_package_manifest", agent_manifest);
     release_sources.addOption(
         []const u8,
         "obstruction_result",

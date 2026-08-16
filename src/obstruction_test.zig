@@ -425,8 +425,52 @@ test "the check target binds the exact frozen lock and Agent package" {
         ".agent = .{",
         ".hash = \"",
     );
+    const lock_boundary_url = try quotedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"boundary\": {",
+        "\"url\": \"",
+    );
+    const lock_boundary_hash = try quotedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"boundary\": {",
+        "\"packageHash\": \"",
+    );
+    const agent_boundary_url = try quotedValueAfter(
+        release_sources.agent_package_manifest,
+        ".boundary = .{",
+        ".url = \"",
+    );
+    const agent_boundary_hash = try quotedValueAfter(
+        release_sources.agent_package_manifest,
+        ".boundary = .{",
+        ".hash = \"",
+    );
+    const lock_world_url = try quotedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"world\": {",
+        "\"url\": \"",
+    );
+    const lock_world_hash = try quotedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"world\": {",
+        "\"packageHash\": \"",
+    );
+    const agent_world_url = try quotedValueAfter(
+        release_sources.agent_package_manifest,
+        ".world = .{",
+        ".url = \"",
+    );
+    const agent_world_hash = try quotedValueAfter(
+        release_sources.agent_package_manifest,
+        ".world = .{",
+        ".hash = \"",
+    );
     try std.testing.expectEqualStrings(lock_agent_url, manifest_agent_url);
     try std.testing.expectEqualStrings(lock_agent_hash, manifest_agent_hash);
+    try std.testing.expectEqualStrings(lock_boundary_url, agent_boundary_url);
+    try std.testing.expectEqualStrings(lock_boundary_hash, agent_boundary_hash);
+    try std.testing.expectEqualStrings(lock_world_url, agent_world_url);
+    try std.testing.expectEqualStrings(lock_world_hash, agent_world_hash);
 }
 
 test "the published obstruction result matches the executable witness" {
