@@ -348,14 +348,16 @@ test "the check target binds the exact frozen lock and Agent package" {
         "d159b0c9a2075cc57d38fa893db68ae416ff68e3988cc8632ae91a3f42853aba",
     );
     try std.testing.expectEqualSlices(u8, &expected_lock_digest, &lock_digest);
-    try std.testing.expect(std.mem.indexOf(
-        u8,
+    var manifest_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(
         release_sources.package_manifest,
-        "https://github.com/tkersey/agent/archive/refs/tags/v2.2.0.tar.gz",
-    ) != null);
-    try std.testing.expect(std.mem.indexOf(
-        u8,
-        release_sources.package_manifest,
-        "agent-2.2.0-dBg3hEHJDABT5usyJGH7PowXTWmpI3rhYXszl6sMz1BV",
-    ) != null);
+        &manifest_digest,
+        .{},
+    );
+    var expected_manifest_digest: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(
+        &expected_manifest_digest,
+        "d6fb403ea24241db6a11437a65a7663e9e534394e9419941360a4242bc9dd913",
+    );
+    try std.testing.expectEqualSlices(u8, &expected_manifest_digest, &manifest_digest);
 }
