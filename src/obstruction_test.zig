@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const agent = @import("agent");
 const boundary = @import("boundary");
 const release_sources = @import("release_sources");
@@ -276,6 +277,17 @@ fn quotedValueAfter(text: []const u8, section: []const u8, key: []const u8) ![]c
     return value[0..value_end];
 }
 
+fn unsignedValueAfter(text: []const u8, section: []const u8, key: []const u8) !u32 {
+    const section_start = std.mem.indexOf(u8, text, section) orelse
+        return error.MissingSection;
+    const section_text = text[section_start..];
+    const key_start = std.mem.indexOf(u8, section_text, key) orelse
+        return error.MissingKey;
+    const value = section_text[key_start + key.len ..];
+    const value_end = std.mem.indexOfAny(u8, value, ",\n") orelse value.len;
+    return std.fmt.parseInt(u32, std.mem.trim(u8, value[0..value_end], " \t\r"), 10);
+}
+
 fn resultValueFrom(text: []const u8, key: []const u8) ![]const u8 {
     var found: ?[]const u8 = null;
     var lines = std.mem.splitScalar(u8, text, '\n');
@@ -428,7 +440,31 @@ test "the published obstruction result matches the executable witness" {
         "\"tuple\": {",
         "\"boundary\": \"",
     );
+    const lock_zig_version = try quotedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"tuple\": {",
+        "\"zig\": \"",
+    );
+    const lock_machine_state = try quotedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"tuple\": {",
+        "\"machineStateFormat\": \"",
+    );
+    const lock_machine_abi = try unsignedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"tuple\": {",
+        "\"machineAbi\": ",
+    );
     try std.testing.expectEqualStrings(agent.package_version, lock_agent_version);
+    var zig_version_buffer: [64]u8 = undefined;
+    const active_zig_version = try std.fmt.bufPrint(
+        &zig_version_buffer,
+        "{f}",
+        .{builtin.zig_version},
+    );
+    try std.testing.expectEqualStrings(active_zig_version, lock_zig_version);
+    try std.testing.expectEqual(Machine.abi_version, lock_machine_abi);
+    try std.testing.expectEqualStrings(&Machine.Manifest.state_image_magic, lock_machine_state);
     var boundary_identity_buffer: [128]u8 = undefined;
     const boundary_identity = try std.fmt.bufPrint(
         &boundary_identity_buffer,
