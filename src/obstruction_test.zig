@@ -5,6 +5,11 @@ const release_sources = @import("release_sources");
 
 const TestRequest = struct { suite: u8 };
 const TestResult = struct { passed: bool };
+
+// These are the application-owned repository-steward contracts fixed by the
+// Praxis v1 specification. Agent's adequacy/router-policy-v1 types belong to a
+// separate released fixture; its slot-based schemas are not global owners of
+// these labels and are deliberately not imported here.
 const Path = boundary.Text(256);
 const FileText = boundary.Text(16 * 1024);
 const SummaryText = boundary.Text(4 * 1024);

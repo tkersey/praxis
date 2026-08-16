@@ -37,6 +37,13 @@ The test asserts their Boundary semantic contract digest in addition to Machine 
 2, `ABL_RNF2`, and the residual effect semantic identity. This is a runtime
 reachability proof, not source inference.
 
+These schemas are owned by the repository-steward application contract. The
+slot-based types under Agent's released `adequacy/router-policy-v1` corpus belong to
+a different application fixture; they do not globally define every use of these
+interface labels. Praxis would bind its emitted application ID, interface, and exact
+schema IDs to its application-owned capabilities. This reproducer stops before host
+resolution because the obstruction is the earlier Agent compiler admission seam.
+
 ## Owner
 
 Owner: **Agent compiler**.
