@@ -260,6 +260,26 @@ fn replacementAction() !Action {
     } };
 }
 
+fn quotedValueAfter(text: []const u8, section: []const u8, key: []const u8) ![]const u8 {
+    const section_start = std.mem.indexOf(u8, text, section) orelse
+        return error.MissingSection;
+    const section_text = text[section_start..];
+    const key_start = std.mem.indexOf(u8, section_text, key) orelse
+        return error.MissingKey;
+    const value = section_text[key_start + key.len ..];
+    const value_end = std.mem.indexOfScalar(u8, value, '"') orelse
+        return error.UnterminatedValue;
+    return value[0..value_end];
+}
+
+fn resultValue(key: []const u8) ![]const u8 {
+    const key_start = std.mem.indexOf(u8, release_sources.obstruction_result, key) orelse
+        return error.MissingResultKey;
+    const value = release_sources.obstruction_result[key_start + key.len ..];
+    const value_end = std.mem.indexOfScalar(u8, value, '\n') orelse value.len;
+    return value[0..value_end];
+}
+
 test "Agent v2.2.0 reaches replacement before the baseline test invariant" {
     try std.testing.expectEqual(@as(u32, 2), Machine.abi_version);
     try std.testing.expectEqualSlices(u8, "ABL_RNF2", &Machine.Manifest.state_image_magic);
@@ -360,4 +380,57 @@ test "the check target binds the exact frozen lock and Agent package" {
         "d6fb403ea24241db6a11437a65a7663e9e534394e9419941360a4242bc9dd913",
     );
     try std.testing.expectEqualSlices(u8, &expected_manifest_digest, &manifest_digest);
+
+    const lock_agent_url = try quotedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"agent\": {",
+        "\"url\": \"",
+    );
+    const lock_agent_hash = try quotedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"agent\": {",
+        "\"packageHash\": \"",
+    );
+    const manifest_agent_url = try quotedValueAfter(
+        release_sources.package_manifest,
+        ".agent = .{",
+        ".url = \"",
+    );
+    const manifest_agent_hash = try quotedValueAfter(
+        release_sources.package_manifest,
+        ".agent = .{",
+        ".hash = \"",
+    );
+    try std.testing.expectEqualStrings(lock_agent_url, manifest_agent_url);
+    try std.testing.expectEqualStrings(lock_agent_hash, manifest_agent_hash);
+}
+
+test "the published obstruction result matches the executable witness" {
+    const lock_agent_version = try quotedValueAfter(
+        release_sources.reference_stack_lock,
+        "\"tuple\": {",
+        "\"agent\": \"",
+    );
+    try std.testing.expectEqualStrings("praxis_obstruction", try resultValue("result="));
+    try std.testing.expectEqualStrings("agent-compiler", try resultValue("owner="));
+    try std.testing.expectEqualStrings(
+        "zig build check --summary all",
+        try resultValue("reproducer="),
+    );
+    try std.testing.expectEqualStrings(lock_agent_version, try resultValue("released_agent="));
+    const result_machine_abi = try std.fmt.parseInt(
+        u32,
+        try resultValue("boundary_machine_abi="),
+        10,
+    );
+    try std.testing.expectEqual(Machine.abi_version, result_machine_abi);
+    try std.testing.expectEqualStrings(
+        "ABL_RNF2",
+        try resultValue("machine_state="),
+    );
+    try std.testing.expectEqualStrings(
+        "false",
+        try resultValue("substrate_changes_applied="),
+    );
+    try std.testing.expectEqualStrings("false", try resultValue("completion_claimed="));
 }

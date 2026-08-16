@@ -30,6 +30,11 @@ pub fn build(b: *std.Build) void {
         @embedFile("conformance/praxis-v1/reference-stack.lock.json"),
     );
     release_sources.addOption([]const u8, "package_manifest", @embedFile("build.zig.zon"));
+    release_sources.addOption(
+        []const u8,
+        "obstruction_result",
+        @embedFile("conformance/praxis-v1/obstructions/agent-pre-effect-admission/result.txt"),
+    );
     witness.addOptions("release_sources", release_sources);
 
     const tests = b.addTest(.{ .root_module = witness });
