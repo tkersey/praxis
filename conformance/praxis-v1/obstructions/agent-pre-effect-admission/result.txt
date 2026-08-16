@@ -1,0 +1,8 @@
+result=praxis_obstruction
+owner=agent-compiler
+reproducer=zig build check --summary all
+released_agent=2.2.0
+boundary_machine_abi=2
+machine_state=ABL_RNF2
+substrate_changes_applied=false
+completion_claimed=false

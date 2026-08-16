@@ -1,0 +1,21 @@
+.{
+    .name = .praxis,
+    .version = "0.0.0",
+    .dependencies = .{
+        .agent = .{
+            .url = "https://github.com/tkersey/agent/archive/refs/tags/v2.2.0.tar.gz",
+            .hash = "agent-2.2.0-dBg3hEHJDABT5usyJGH7PowXTWmpI3rhYXszl6sMz1BV",
+        },
+    },
+    .minimum_zig_version = "0.16.0",
+    .fingerprint = 0x9db9462b8b297b90,
+    .paths = .{
+        ".github",
+        "LICENSE",
+        "README.md",
+        "build.zig",
+        "build.zig.zon",
+        "conformance",
+        "src",
+    },
+}
