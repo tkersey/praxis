@@ -3,8 +3,8 @@
     .version = "1.0.0",
     .dependencies = .{
         .agent = .{
-            .url = "https://github.com/tkersey/agent/archive/refs/tags/v2.3.0.tar.gz",
-            .hash = "agent-2.3.0-dBg3hLLwDQBMp4sAOFQfn_nOQ-ZbQpVxYggi_rt4QRvi",
+            .url = "https://github.com/tkersey/agent/archive/refs/tags/v2.5.0.tar.gz",
+            .hash = "agent-2.5.0-dBg3hA8mDgDqOVnJF_4OVessuwfB7sqx6Z1jdYs6f9_p",
         },
     },
     .minimum_zig_version = "0.16.0",

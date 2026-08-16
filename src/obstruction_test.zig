@@ -257,6 +257,42 @@ const Compiled = agent.compile(
 
 const Machine = Compiled.Machine;
 
+const CompareArgs = struct {
+    left: Path,
+    right: Path,
+};
+
+fn lowerPathComparison() type {
+    const Builder = agent.Flow(.{ .schema_types = .{ CompareArgs, Path } });
+    comptime var flow = Builder.init("praxis-path-comparison");
+    const args = flow.begin(CompareArgs);
+    const ordering = flow.textCompare(
+        flow.productExtract(0, args),
+        flow.productExtract(1, args),
+    );
+    flow.returnValue(ordering);
+    return flow.finish(i8);
+}
+
+const PathComparisonBody = struct {
+    const Lowering = lowerPathComparison();
+    pub const InitialArgs = CompareArgs;
+    pub const Result = i8;
+    pub const Failure = enum { impossible };
+    pub const effect_sites = boundary.effect.row(.{});
+    pub const schema_types = Lowering.schema_types;
+    pub const control_ir = Lowering.control_ir;
+};
+
+const PathComparisonMachine = boundary.program(
+    "praxis-path-comparison",
+    PathComparisonBody,
+).compile(.{
+    .maximum_frames = 2,
+    .maximum_state_bytes = 2048,
+    .maximum_machine_fuel = 32,
+});
+
 fn resumeRequest(state: *Machine.State, request: Machine.Request, value: anytype) !void {
     const prepared = try Machine.prepareResume(state.*, request);
     defer Machine.deinitPreparedResume(prepared);
@@ -276,6 +312,30 @@ fn replacementAction() !Action {
         .replacement = try FileText.fromSlice("const corrected = true;\n"),
         .rationale = try SummaryText.fromSlice("Exercise the exact Praxis replacement contract."),
     } };
+}
+
+test "Agent v2.5.0 exposes typed canonical Path comparison" {
+    inline for (.{
+        .{ "src/a.zig", "src/a.zig", @as(i8, 0) },
+        .{ "src/a.zig", "src/b.zig", @as(i8, -1) },
+        .{ "src/b.zig", "src/a.zig", @as(i8, 1) },
+    }) |fixture| {
+        const state = try PathComparisonMachine.initialState(
+            std.testing.allocator,
+            .{
+                .left = try Path.fromSlice(fixture[0]),
+                .right = try Path.fromSlice(fixture[1]),
+            },
+        );
+        defer PathComparisonMachine.deinitState(state);
+        var fuel: u64 = 16;
+        const done = switch (try PathComparisonMachine.step(state, &fuel)) {
+            .done => |result| result,
+            else => return error.UnexpectedMachineStep,
+        };
+        defer done.deinit();
+        try std.testing.expectEqual(fixture[2], done.value().*);
+    }
 }
 
 fn quotedValueAfter(text: []const u8, section: []const u8, key: []const u8) ![]const u8 {
@@ -445,7 +505,7 @@ fn parseObstructionResult(text: []const u8) !ObstructionResult {
     return parsed;
 }
 
-test "Agent v2.3.0 rejects replacement before the baseline test invariant" {
+test "Agent v2.5.0 rejects replacement before the baseline test invariant" {
     try std.testing.expectEqual(@as(u32, 2), Machine.abi_version);
     try std.testing.expectEqualSlices(u8, "ABL_RNF2", &Machine.Manifest.state_image_magic);
     try std.testing.expectEqualStrings(
@@ -530,7 +590,7 @@ test "the check target binds the exact frozen lock and Agent package" {
     var expected_lock_digest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected_lock_digest,
-        "bcb062bcd3680a0a254a880cf5210c3f4a4a84a87bb855e1eb72e644269235a2",
+        "afc8948f89000ee52eaf659804831c05608417553336c214b0b441a9ba9901b7",
     );
     try std.testing.expectEqualSlices(u8, &expected_lock_digest, &lock_digest);
     var manifest_digest: [32]u8 = undefined;
@@ -542,7 +602,7 @@ test "the check target binds the exact frozen lock and Agent package" {
     var expected_manifest_digest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected_manifest_digest,
-        "d0bc3b7e57448aea2a1a1ffeb57a913821df5f3c2e8e2fdb67295bcdef270371",
+        "b76c4c229038d67203000ef9f89f3d9bc8802323226f58d1cc8c63cf48afe70e",
     );
     try std.testing.expectEqualSlices(u8, &expected_manifest_digest, &manifest_digest);
 

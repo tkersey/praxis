@@ -46,8 +46,20 @@ pub fn build(b: *std.Build) void {
     witness.addOptions("release_sources", release_sources);
 
     const tests = b.addTest(.{ .root_module = witness });
+    const epistemics_tests_module = b.createModule(.{
+        .root_source_file = b.path("src/epistemics_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    epistemics_tests_module.addImport("agent", agent_dependency.module("agent"));
+    epistemics_tests_module.addImport("boundary", agent_dependency.module("boundary"));
+    const epistemics_tests = b.addTest(.{ .root_module = epistemics_tests_module });
+    epistemics_tests.stack_size = 1024 * 1024 * 1024;
+    const epistemics_check = b.step("check-epistemics", "Compile and test the Praxis epistemic strategy");
+    epistemics_check.dependOn(&b.addRunArtifact(epistemics_tests).step);
     const check = b.step("check", "Run the Praxis v1 Agent action-admission regression proof");
     check.dependOn(&b.addRunArtifact(tests).step);
+    check.dependOn(&b.addRunArtifact(epistemics_tests).step);
     const text_comparison_obstruction = b.addSystemCommand(&.{
         "node",
         "conformance/praxis-v1/obstructions/agent-text-comparison/reproducer/verify.mjs",
