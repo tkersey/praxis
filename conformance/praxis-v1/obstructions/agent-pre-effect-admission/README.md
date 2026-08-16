@@ -15,7 +15,8 @@ The counterexample uses Zig 0.16.0 and the exact public Agent v2.2.0 package has
 `build.zig.zon`. The complete frozen tuple is in
 `conformance/praxis-v1/reference-stack.lock.json`. The check target hashes and
 exact-matches that lock and verifies that the package manifest contains the bound
-Agent release URL and package hash.
+Agent release URL and package hash. The build entrypoint rejects any Zig version
+other than exact `0.16.0` before compiling the witness.
 
 ## Executable counterexample
 

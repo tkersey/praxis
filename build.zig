@@ -1,6 +1,15 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub fn build(b: *std.Build) void {
+    const required_zig = std.SemanticVersion.parse("0.16.0") catch unreachable;
+    if (!std.meta.eql(builtin.zig_version, required_zig)) {
+        std.debug.panic(
+            "Praxis v1 requires exact Zig 0.16.0, found {f}",
+            .{builtin.zig_version},
+        );
+    }
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const agent_dependency = b.dependency("agent", .{
