@@ -29,8 +29,9 @@ Machine ABI, and Machine state format are compared directly with the active tool
 and compiled Machine. The check then verifies the published
 `result.txt` owner, release, ABI, state format, and non-completion fields against the
 executable witness. Git pins those embedded artifacts to LF bytes, and result fields
-are matched as exact, unique keys. World is resolved through Agent's pinned package
-graph but is not executed by this minimized Agent-compiler owner reproducer.
+are parsed once as an exact eight-field record with unknown, malformed, duplicate,
+and missing fields rejected. World is resolved through Agent's pinned package graph
+but is not executed by this minimized Agent-compiler owner reproducer.
 world-host and world-capabilities remain exact retained lock entries and are not
 loaded runtime components of the reproducer.
 
