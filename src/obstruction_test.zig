@@ -272,12 +272,20 @@ fn quotedValueAfter(text: []const u8, section: []const u8, key: []const u8) ![]c
     return value[0..value_end];
 }
 
+fn resultValueFrom(text: []const u8, key: []const u8) ![]const u8 {
+    var found: ?[]const u8 = null;
+    var lines = std.mem.splitScalar(u8, text, '\n');
+    while (lines.next()) |line| {
+        const equals = std.mem.indexOfScalar(u8, line, '=') orelse continue;
+        if (!std.mem.eql(u8, line[0..equals], key)) continue;
+        if (found != null) return error.DuplicateResultKey;
+        found = line[equals + 1 ..];
+    }
+    return found orelse error.MissingResultKey;
+}
+
 fn resultValue(key: []const u8) ![]const u8 {
-    const key_start = std.mem.indexOf(u8, release_sources.obstruction_result, key) orelse
-        return error.MissingResultKey;
-    const value = release_sources.obstruction_result[key_start + key.len ..];
-    const value_end = std.mem.indexOfScalar(u8, value, '\n') orelse value.len;
-    return value[0..value_end];
+    return resultValueFrom(release_sources.obstruction_result, key);
 }
 
 test "Agent v2.2.0 reaches replacement before the baseline test invariant" {
@@ -411,26 +419,37 @@ test "the published obstruction result matches the executable witness" {
         "\"tuple\": {",
         "\"agent\": \"",
     );
-    try std.testing.expectEqualStrings("praxis_obstruction", try resultValue("result="));
-    try std.testing.expectEqualStrings("agent-compiler", try resultValue("owner="));
+    try std.testing.expectEqualStrings("praxis_obstruction", try resultValue("result"));
+    try std.testing.expectEqualStrings("agent-compiler", try resultValue("owner"));
     try std.testing.expectEqualStrings(
         "zig build check --summary all",
-        try resultValue("reproducer="),
+        try resultValue("reproducer"),
     );
-    try std.testing.expectEqualStrings(lock_agent_version, try resultValue("released_agent="));
+    try std.testing.expectEqualStrings(lock_agent_version, try resultValue("released_agent"));
     const result_machine_abi = try std.fmt.parseInt(
         u32,
-        try resultValue("boundary_machine_abi="),
+        try resultValue("boundary_machine_abi"),
         10,
     );
     try std.testing.expectEqual(Machine.abi_version, result_machine_abi);
     try std.testing.expectEqualStrings(
         "ABL_RNF2",
-        try resultValue("machine_state="),
+        try resultValue("machine_state"),
     );
     try std.testing.expectEqualStrings(
         "false",
-        try resultValue("substrate_changes_applied="),
+        try resultValue("substrate_changes_applied"),
     );
-    try std.testing.expectEqualStrings("false", try resultValue("completion_claimed="));
+    try std.testing.expectEqualStrings("false", try resultValue("completion_claimed"));
+}
+
+test "published result keys are exact and unique" {
+    try std.testing.expectError(
+        error.MissingResultKey,
+        resultValueFrom("not_completion_claimed=false\n", "completion_claimed"),
+    );
+    try std.testing.expectError(
+        error.DuplicateResultKey,
+        resultValueFrom("completion_claimed=false\ncompletion_claimed=true\n", "completion_claimed"),
+    );
 }

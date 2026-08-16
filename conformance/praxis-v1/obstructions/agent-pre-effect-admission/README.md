@@ -19,7 +19,8 @@ stale release strings from masking an active dependency change. The build entryp
 rejects any Zig version other than exact `0.16.0` before compiling the witness.
 The check also compares the active Agent URL and package hash across the lock and
 manifest, then verifies the published `result.txt` owner, release, ABI, state format,
-and non-completion fields against the executable witness.
+and non-completion fields against the executable witness. Git pins those embedded
+artifacts to LF bytes, and result fields are matched as exact, unique keys.
 
 ## Executable counterexample
 
