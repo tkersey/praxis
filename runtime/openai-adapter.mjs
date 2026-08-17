@@ -61,8 +61,11 @@ function responsesRequest(context, request) {
 
 function exactResponse(value, requestedModel) {
   if (!value || typeof value !== "object" || value.status !== "completed" || value.model !== requestedModel || typeof value.id !== "string") throw new Error("openai_response_not_admitted");
-  if (!Array.isArray(value.output) || value.output.length !== 1) throw new Error("openai_output_count_not_admitted");
-  const message = value.output[0];
+  if (!Array.isArray(value.output)) throw new Error("openai_output_count_not_admitted");
+  const messages = value.output.filter((item) => item?.type === "message");
+  if (messages.length !== 1) throw new Error("openai_output_count_not_admitted");
+  if (value.output.some((item) => item?.type !== "message" && item?.type !== "reasoning")) throw new Error("openai_output_type_not_admitted");
+  const message = messages[0];
   if (message?.type !== "message" || message.role !== "assistant" || !Array.isArray(message.content) || message.content.length !== 1) throw new Error("openai_message_not_admitted");
   const content = message.content[0];
   if (content?.type === "refusal") throw new Error("openai_refusal");

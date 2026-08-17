@@ -46,6 +46,15 @@ describe("OpenAI decision adapter", () => {
     expect(JSON.stringify(result.claims)).not.toContain("resp_private"); expect(JSON.stringify(result.claims)).not.toContain("test-secret");
   });
 
+  test("admits one message accompanied by a reasoning item", async () => {
+    const body = completed(JSON.stringify({ action: "list_repository", arguments: {} }));
+    body.output.unshift({ type: "reasoning", id: "reasoning_private", summary: [] });
+    const result = await resolve(context(async () => response(body)), request);
+    expect(result.status).toBe("ok");
+    expect(result.payload).toEqual({ action: "list_repository", arguments: {} });
+    expect(JSON.stringify(result.claims)).not.toContain("reasoning_private");
+  });
+
   test("rejects missing authority and never calls the provider", async () => {
     let calls = 0; const denied = context(async () => { calls += 1; }); denied.secrets = {};
     expect((await preflight(denied, request)).status).toBe("rejected");
@@ -56,6 +65,7 @@ describe("OpenAI decision adapter", () => {
     const cases = [
       { ...completed("{}"), model: "other" },
       { ...completed("{}"), output: [completed("{}").output[0], completed("{}").output[0]] },
+      { ...completed("{}"), output: [{ type: "tool_call" }, completed("{}").output[0]] },
       { ...completed("{}"), output: [{ type: "message", role: "assistant", content: [{ type: "refusal", refusal: "no" }] }] },
       completed(JSON.stringify({ action: "read_file", arguments: { path: "src/main.zig", extra: true } })),
     ];
