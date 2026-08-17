@@ -45,6 +45,14 @@ function tar(args) {
   return result.stdout;
 }
 
+export function parseTarVerboseSize(line) {
+  const bsd = line.match(/^\S+\s+\d+\s+\S+\s+\S+\s+(\d+)\s+/);
+  if (bsd) return Number(bsd[1]);
+  const gnu = line.match(/^\S+\s+\S+\/\S+\s+(\d+)\s+/);
+  if (gnu) return Number(gnu[1]);
+  throw new Error(`unable to validate archive expansion: ${line}`);
+}
+
 function validateArchive(archivePath, expectedRoot) {
   const listing = tar(["-tzf", archivePath]);
   const names = listing.split("\n").filter(Boolean);
@@ -67,9 +75,7 @@ function validateArchive(archivePath, expectedRoot) {
   for (const line of verbose) {
     const type = line[0];
     if (type !== "-" && type !== "d") throw new Error(`archive links or special entries are forbidden: ${line}`);
-    const match = line.match(/^\S+\s+\d+\s+\S+\s+\S+\s+(\d+)\s+/);
-    if (!match) throw new Error(`unable to validate archive expansion: ${line}`);
-    expandedBytes += Number(match[1]);
+    expandedBytes += parseTarVerboseSize(line);
     if (!Number.isSafeInteger(expandedBytes) || expandedBytes > maximumExpandedBytes) throw new Error("archive expansion exceeds Praxis bound");
   }
   return { entries: names.length, expandedBytes };
@@ -113,8 +119,10 @@ async function acquire(name, descriptor, options) {
   return { archive: path.resolve(archivePath), root: path.resolve(extractedRoot), ...shape };
 }
 
-const options = parseArgs(process.argv.slice(2));
-await fsp.mkdir(options.destination, { recursive: true, mode: 0o700 });
-const roots = {};
-for (const [name, descriptor] of Object.entries(lock.archives)) roots[name] = await acquire(name, descriptor, options);
-process.stdout.write(`${JSON.stringify({ format: "praxis-reference-stack-result/v1", tuple: lock.tuple, roots }, null, 2)}\n`);
+if (import.meta.main) {
+  const options = parseArgs(process.argv.slice(2));
+  await fsp.mkdir(options.destination, { recursive: true, mode: 0o700 });
+  const roots = {};
+  for (const [name, descriptor] of Object.entries(lock.archives)) roots[name] = await acquire(name, descriptor, options);
+  process.stdout.write(`${JSON.stringify({ format: "praxis-reference-stack-result/v1", tuple: lock.tuple, roots }, null, 2)}\n`);
+}
