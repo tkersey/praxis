@@ -46,13 +46,21 @@ function strictSchema(actionSchema) {
 }
 
 function actionFromProviderText(text) {
-  const envelope = JSON.parse(text);
+  let envelope;
+  try { envelope = JSON.parse(text); } catch { throw new Error("openai_action_json_not_admitted"); }
   if (!envelope || typeof envelope !== "object" || Array.isArray(envelope) ||
       Object.keys(envelope).length !== 1 || !Object.hasOwn(envelope, "value")) {
     throw new Error("openai_action_envelope_not_admitted");
   }
   encodeAction(envelope.value);
   return envelope.value;
+}
+
+function actionFromProviderTexts(texts) {
+  const actions = texts.map(actionFromProviderText);
+  const canonical = actions.map((action) => Buffer.from(encodeAction(action)));
+  if (canonical.some((encoded) => !encoded.equals(canonical[0]))) throw new Error("openai_multiple_actions_not_admitted");
+  return actions[0];
 }
 
 function admittedContract(context) {
@@ -109,7 +117,7 @@ function exactResponse(value, requestedModel) {
   }
   const usage = value.usage;
   for (const field of ["input_tokens", "output_tokens", "total_tokens"]) if (!Number.isSafeInteger(usage?.[field]) || usage[field] < 0) throw new Error("openai_usage_not_admitted");
-  return { id: value.id, model: value.model, text: outputText.join(""), usage };
+  return { id: value.id, model: value.model, texts: outputText, usage };
 }
 
 export async function resolve(context, request) {
@@ -132,7 +140,7 @@ export async function resolve(context, request) {
   const text = await response.text(); if (Buffer.byteLength(text, "utf8") > maximumResponseBytes) return recordedFailure(context, request, "openai_response_too_large");
   try {
     const parsed = exactResponse(JSON.parse(text), context.model);
-    const action = actionFromProviderText(parsed.text);
+    const action = actionFromProviderTexts(parsed.texts);
     return outcome(request, "ok", action, {
       provider: "openai", endpointClass: "responses", requestedModel: context.model, returnedModel: parsed.model,
       responseIdSha256: createHash("sha256").update(parsed.id).digest("hex"),
@@ -145,4 +153,4 @@ export async function recover(_context, effectRecord) {
   return effectRecord?.recordedResolution ? structuredClone(effectRecord.recordedResolution) : { status: "failed", payload: { reason: "recorded_resolution_required" } };
 }
 
-export const _openAiInternals = { normalizeStrictNode, strictSchema, actionFromProviderText, responsesRequest, exactResponse };
+export const _openAiInternals = { normalizeStrictNode, strictSchema, actionFromProviderText, actionFromProviderTexts, responsesRequest, exactResponse };

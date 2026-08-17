@@ -61,16 +61,28 @@ describe("OpenAI decision adapter", () => {
     expect(JSON.stringify(result.claims)).not.toContain("reasoning_private");
   });
 
-  test("admits one structured action split across message items", async () => {
+  test("quotients byte-identical structured actions across message items", async () => {
     const body = completed("");
+    const text = providerAction({ action: "list_repository", arguments: {} });
     body.output = [
       { type: "reasoning", id: "reasoning_private", summary: [] },
-      { type: "message", role: "assistant", content: [{ type: "output_text", text: '{"value":' }] },
-      { type: "message", role: "assistant", content: [{ type: "output_text", text: '{"action":"list_repository","arguments":{}}}' }] },
+      { type: "message", role: "assistant", content: [{ type: "output_text", text }] },
+      { type: "message", role: "assistant", content: [{ type: "output_text", text }] },
     ];
     const result = await resolve(context(async () => response(body)), request);
     expect(result.status).toBe("ok");
     expect(result.payload).toEqual({ action: "list_repository", arguments: {} });
+  });
+
+  test("rejects distinct structured actions across message items", async () => {
+    const body = completed("");
+    body.output = [
+      { type: "message", role: "assistant", content: [{ type: "output_text", text: providerAction({ action: "list_repository", arguments: {} }) }] },
+      { type: "message", role: "assistant", content: [{ type: "output_text", text: providerAction({ action: "read_file", arguments: { path: "src/main.zig" } }) }] },
+    ];
+    const admitted = context(async () => response(body));
+    expect((await resolve(admitted, request)).status).toBe("failed");
+    expect(admitted.lastOpenAiFailure).toBe("openai_multiple_actions_not_admitted");
   });
 
   test("rejects missing authority and never calls the provider", async () => {
