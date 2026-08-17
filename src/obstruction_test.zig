@@ -602,7 +602,7 @@ test "the check target binds the exact frozen lock and Agent package" {
     var expected_manifest_digest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected_manifest_digest,
-        "7b33626b63b5c5830b4ec245464df29c3a90aa43451094c58862024b22bf1042",
+        "e7340165d6d4b952268bcd0265dcd2fb7bf8871a6974346d8d00cca19744f983",
     );
     try std.testing.expectEqualSlices(u8, &expected_manifest_digest, &manifest_digest);
 

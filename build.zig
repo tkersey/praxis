@@ -207,6 +207,24 @@ pub fn build(b: *std.Build) void {
         .basename = "repository-steward.type-measurements.txt",
     });
 
+    const codec_vectors = b.addExecutable(.{
+        .name = "emit-repository-steward-codec-vectors",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/emit_codec_vectors.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "boundary", .module = agent_dependency.module("boundary") },
+                .{ .name = "praxis_definition", .module = definition_module },
+            },
+        }),
+    });
+    codec_vectors.stack_size = 1024 * 1024 * 1024;
+    const run_codec_vectors = b.addRunArtifact(codec_vectors);
+    const codec_vectors_output = run_codec_vectors.captureStdOut(.{
+        .basename = "repository-steward.codec-vectors.json",
+    });
+
     const artifact_check = b.addSystemCommand(&.{"node"});
     artifact_check.addFileArg(wasm_world_dependency.path("scripts/world_application_v1_artifact_check.mjs"));
     artifact_check.addFileArg(packed_wasm);
@@ -245,6 +263,10 @@ pub fn build(b: *std.Build) void {
         type_measurements_output,
         "repository-steward/repository-steward.type-measurements.txt",
     );
+    const install_codec_vectors = b.addInstallFile(
+        codec_vectors_output,
+        "repository-steward/repository-steward.codec-vectors.json",
+    );
     const install_initial_args = b.addInstallArtifact(initial_args, .{});
 
     const check = b.step("check", "Run the Praxis v1 Agent action-admission regression proof");
@@ -257,6 +279,7 @@ pub fn build(b: *std.Build) void {
     check.dependOn(&contract_binary.step);
     check.dependOn(&run_binding_manifest.step);
     check.dependOn(&type_measurements.step);
+    check.dependOn(&run_codec_vectors.step);
     const text_comparison_obstruction = b.addSystemCommand(&.{
         "node",
         "conformance/praxis-v1/obstructions/agent-text-comparison/reproducer/verify.mjs",
@@ -270,6 +293,7 @@ pub fn build(b: *std.Build) void {
     b.getInstallStep().dependOn(&install_contract_binary.step);
     b.getInstallStep().dependOn(&install_binding_manifest.step);
     b.getInstallStep().dependOn(&install_type_measurements.step);
+    b.getInstallStep().dependOn(&install_codec_vectors.step);
     b.getInstallStep().dependOn(&install_initial_args.step);
 }
 

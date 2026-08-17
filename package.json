@@ -1,0 +1,7 @@
+{
+  "type": "module",
+  "scripts": {
+    "check": "bun run check:local",
+    "check:local": "zig build install && bun tools/check-codecs.mjs && bun test test/runtime.test.mjs"
+  }
+}

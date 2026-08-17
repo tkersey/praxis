@@ -20,6 +20,10 @@
         "build.zig",
         "build.zig.zon",
         "conformance",
+        "package.json",
+        "runtime",
         "src",
+        "test",
+        "tools",
     },
 }
