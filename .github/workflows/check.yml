@@ -15,14 +15,13 @@ jobs:
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
         with:
           version: 0.16.0
-          use-cache: false
       - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2
         with:
           bun-version: 1.3.14
       - run: zig version
       - run: zig build check --summary all
         env:
-          ZIG_LOCAL_CACHE_DIR: ${{ runner.temp }}/praxis-zig-local
+          ZIG_LOCAL_CACHE_DIR: ${{ github.workspace }}/.zig-cache
           ZIG_GLOBAL_CACHE_DIR: ${{ runner.temp }}/praxis-zig-global
       - run: bun tools/check-lock.mjs
       - run: bun tools/reference-stack.mjs
