@@ -43,6 +43,14 @@ function validatePath(value, label) {
   return value;
 }
 
+function validatePathPrefix(value) {
+  if (value === "") return value;
+  if (typeof value !== "string" || Buffer.byteLength(value, "utf8") > 256) throw new TypeError("path_prefix is outside the path bound");
+  const normalized = value.endsWith("/") ? value.slice(0, -1) : value;
+  validatePath(normalized, "path_prefix");
+  return normalized;
+}
+
 function sortedUniquePaths(value, maximum, label) {
   if (!Array.isArray(value) || value.length > maximum) throw new TypeError(`${label} is outside its item bound`);
   const paths = value.map((item, index) => validatePath(item, `${label}[${index}]`));
@@ -127,8 +135,8 @@ async function listRepository(context) {
 
 async function searchRepository(context, payload) {
   if (typeof payload.query !== "string" || Buffer.byteLength(payload.query, "utf8") === 0 || Buffer.byteLength(payload.query, "utf8") > 256) throw new Error("search_query_not_admitted");
-  if (payload.path_prefix !== "") validatePath(payload.path_prefix, "path_prefix");
-  const candidates = context.policy.readablePaths.filter((candidate) => payload.path_prefix === "" || candidate === payload.path_prefix || candidate.startsWith(`${payload.path_prefix}/`));
+  const pathPrefix = validatePathPrefix(payload.path_prefix);
+  const candidates = context.policy.readablePaths.filter((candidate) => pathPrefix === "" || candidate === pathPrefix || candidate.startsWith(`${pathPrefix}/`));
   const hits = []; let truncated = false;
   for (const candidate of candidates) {
     const document = await readSnapshot(context, candidate);
@@ -276,11 +284,14 @@ export async function resolve(context, request) {
       return ok(request, replacement);
     }
     return reject(request, "operation_not_admitted");
-  } catch (error) { return failed(request, error); }
+  } catch (error) {
+    context.lastWorkspaceFailure = String(error?.message ?? error).slice(0, 256);
+    return failed(request, error);
+  }
 }
 
 export async function recover(_context, effectRecord) {
   return effectRecord?.recordedResolution ? structuredClone(effectRecord.recordedResolution) : { status: "failed", payload: { reason: "recorded_resolution_required" } };
 }
 
-export const _workspaceInternals = { canonical, sha256Text, readSnapshot, listRepository, searchRepository, spawnCheck };
+export const _workspaceInternals = { canonical, sha256Text, validatePathPrefix, readSnapshot, listRepository, searchRepository, spawnCheck };

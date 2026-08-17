@@ -72,8 +72,11 @@ describe("workspace adapter", () => {
     expect(listed.payload.entries.map((entry) => entry.writable)).toEqual([false, true, true]);
     const read = await resolve(context, request("read", { path: "src/main.zig" }));
     expect(read.payload.sha256).toBe(digest("const value = 0;\n"));
-    const searched = await resolve(context, request("search", { query: "value", path_prefix: "src" }));
+    const searched = await resolve(context, request("search", { query: "value", path_prefix: "src/" }));
     expect(searched.payload.hits).toEqual([{ path: "src/main.zig", line: 1, excerpt: "const value = 0;" }]);
+    const invalidPrefix = await resolve(context, request("search", { query: "value", path_prefix: "src//" }));
+    expect(invalidPrefix.status).toBe("failed");
+    expect(context.lastWorkspaceFailure).toBe("path_prefix is not a normalized relative path");
     const denied = await resolve(context, request("read", { path: "README.md" }));
     expect(denied.status).toBe("failed");
   });

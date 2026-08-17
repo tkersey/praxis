@@ -228,7 +228,7 @@ export async function runLive(options) {
     await writePublicReceipt(attemptReceipt, receipt); await writePublicReceipt(options.receipt, receipt);
     return Object.freeze({ receipt, worktree, runRoot, approvalRoot, policy: rawPolicy, verifier });
   } catch (error) {
-    await writeFailure(options, runId, { candidate, error, terminalStatus, orderedInterfaces, providerFailureClass: context?.lastOpenAiFailure });
+    await writeFailure(options, runId, { candidate, error, terminalStatus, orderedInterfaces, providerFailureClass: context?.lastOpenAiFailure ?? context?.lastWorkspaceFailure });
     throw error;
   }
 }
