@@ -95,17 +95,21 @@ function responsesRequest(context, request) {
 function exactResponse(value, requestedModel) {
   if (!value || typeof value !== "object" || value.status !== "completed" || value.model !== requestedModel || typeof value.id !== "string") throw new Error("openai_response_not_admitted");
   if (!Array.isArray(value.output)) throw new Error("openai_output_count_not_admitted");
-  const messages = value.output.filter((item) => item?.type === "message");
-  if (messages.length !== 1) throw new Error("openai_output_count_not_admitted");
   if (value.output.some((item) => item?.type !== "message" && item?.type !== "reasoning")) throw new Error("openai_output_type_not_admitted");
-  const message = messages[0];
-  if (message?.type !== "message" || message.role !== "assistant" || !Array.isArray(message.content) || message.content.length !== 1) throw new Error("openai_message_not_admitted");
-  const content = message.content[0];
-  if (content?.type === "refusal") throw new Error("openai_refusal");
-  if (content?.type !== "output_text" || typeof content.text !== "string") throw new Error("openai_output_not_text");
+  const messages = value.output.filter((item) => item?.type === "message");
+  if (messages.length === 0) throw new Error("openai_output_message_count_0");
+  const outputText = [];
+  for (const message of messages) {
+    if (message.role !== "assistant" || !Array.isArray(message.content) || message.content.length === 0) throw new Error("openai_message_not_admitted");
+    for (const content of message.content) {
+      if (content?.type === "refusal") throw new Error("openai_refusal");
+      if (content?.type !== "output_text" || typeof content.text !== "string") throw new Error("openai_output_not_text");
+      outputText.push(content.text);
+    }
+  }
   const usage = value.usage;
   for (const field of ["input_tokens", "output_tokens", "total_tokens"]) if (!Number.isSafeInteger(usage?.[field]) || usage[field] < 0) throw new Error("openai_usage_not_admitted");
-  return { id: value.id, model: value.model, text: content.text, usage };
+  return { id: value.id, model: value.model, text: outputText.join(""), usage };
 }
 
 export async function resolve(context, request) {

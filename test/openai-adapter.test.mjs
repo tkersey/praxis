@@ -61,6 +61,18 @@ describe("OpenAI decision adapter", () => {
     expect(JSON.stringify(result.claims)).not.toContain("reasoning_private");
   });
 
+  test("admits one structured action split across message items", async () => {
+    const body = completed("");
+    body.output = [
+      { type: "reasoning", id: "reasoning_private", summary: [] },
+      { type: "message", role: "assistant", content: [{ type: "output_text", text: '{"value":' }] },
+      { type: "message", role: "assistant", content: [{ type: "output_text", text: '{"action":"list_repository","arguments":{}}}' }] },
+    ];
+    const result = await resolve(context(async () => response(body)), request);
+    expect(result.status).toBe("ok");
+    expect(result.payload).toEqual({ action: "list_repository", arguments: {} });
+  });
+
   test("rejects missing authority and never calls the provider", async () => {
     let calls = 0; const denied = context(async () => { calls += 1; }); denied.secrets = {};
     expect((await preflight(denied, request)).status).toBe("rejected");
@@ -77,6 +89,12 @@ describe("OpenAI decision adapter", () => {
       completed(JSON.stringify({ action: "list_repository", arguments: {} })),
     ];
     for (const body of cases) expect((await resolve(context(async () => response(body)), request)).status).toBe("failed");
+  });
+
+  test("retains a redacted zero-message failure class", async () => {
+    const admitted = context(async () => response({ ...completed(""), output: [{ type: "reasoning" }] }));
+    expect((await resolve(admitted, request)).status).toBe("failed");
+    expect(admitted.lastOpenAiFailure).toBe("openai_output_message_count_0");
   });
 
   test("does not retry provider failures", async () => {
