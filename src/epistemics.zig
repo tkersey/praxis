@@ -403,21 +403,19 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
         fn observeTest(flow: anytype, memory: anytype, result: anytype, comptime context: anytype) agent.Value(T.Memory) {
             const mutation_count = flow.productExtract(8, memory);
             const is_baseline = flow.compareEqZero(mutation_count);
-            var next = replaceMemoryField(flow, memory, 3, flow.optionalSome(?T.TestResult, result));
-            next = replaceMemoryField(
-                flow,
-                next,
-                6,
+            return flow.productConstruct(T.Memory, .{
+                flow.productExtract(0, memory),
+                flow.productExtract(1, memory),
+                flow.productExtract(2, memory),
+                flow.optionalSome(?T.TestResult, result),
+                flow.productExtract(4, memory),
+                flow.productExtract(5, memory),
                 flow.booleanOr(flow.productExtract(6, memory), is_baseline),
-            );
-            next = replaceMemoryField(flow, next, 7, flow.productExtract(1, result));
-            next = replaceMemoryField(flow, next, 9, mutation_count);
-            return replaceMemoryField(
-                flow,
-                next,
-                10,
+                flow.productExtract(1, result),
+                mutation_count,
+                mutation_count,
                 flow.integerAdd(flow.productExtract(10, memory), flow.constant(u32, context.one_index)),
-            );
+            });
         }
 
         fn observeApplied(flow: anytype, memory: anytype, applied: anytype, comptime context: anytype) agent.Value(T.Memory) {
@@ -491,26 +489,26 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
             );
 
             const duplicate_values = flow.enter(duplicate);
-            var duplicate_memory = replaceMemoryField(
-                flow,
-                duplicate_values[0],
-                1,
+            flow.jump(joined, .{flow.productConstruct(T.Memory, .{
+                flow.productExtract(0, duplicate_values[0]),
                 flow.vectorSet(
                     flow.productExtract(1, duplicate_values[0]),
                     lookup.index,
                     current,
                 ),
-            );
-            duplicate_memory = replaceMemoryField(
-                flow,
-                duplicate_memory,
-                4,
+                flow.productExtract(2, duplicate_values[0]),
+                flow.productExtract(3, duplicate_values[0]),
                 flow.optionalSome(
                     ?T.ReplaceSummary,
                     flow.sumConstruct(T.ReplaceSummary, 0, duplicate_values[1]),
                 ),
-            );
-            flow.jump(joined, .{duplicate_memory});
+                flow.productExtract(5, duplicate_values[0]),
+                flow.productExtract(6, duplicate_values[0]),
+                flow.productExtract(7, duplicate_values[0]),
+                flow.productExtract(8, duplicate_values[0]),
+                flow.productExtract(9, duplicate_values[0]),
+                flow.productExtract(10, duplicate_values[0]),
+            })});
 
             const new_values = flow.enter(new_mutation);
             const operation_full = flow.integerGreaterEqual(
@@ -530,34 +528,26 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
             flow.failValue(flow.constant(T.Failure, context.capacity_exceeded_index));
 
             const apply_values = flow.enter(apply);
-            var next = replaceMemoryField(
-                flow,
-                apply_values[0],
-                1,
+            flow.jump(joined, .{flow.productConstruct(T.Memory, .{
+                flow.productExtract(0, apply_values[0]),
                 flow.vectorSet(
                     flow.productExtract(1, apply_values[0]),
                     lookup.index,
                     current,
                 ),
-            );
-            next = replaceMemoryField(
-                flow,
-                next,
-                4,
+                flow.productExtract(2, apply_values[0]),
+                flow.productExtract(3, apply_values[0]),
                 flow.optionalSome(
                     ?T.ReplaceSummary,
                     flow.sumConstruct(T.ReplaceSummary, 0, apply_values[1]),
                 ),
-            );
-            next = replaceMemoryField(flow, next, 5, flow.vectorPush(apply_values[2], apply_values[1]));
-            next = replaceMemoryField(flow, next, 7, flow.constant(bool, context.false_index));
-            next = replaceMemoryField(
-                flow,
-                next,
-                8,
+                flow.vectorPush(apply_values[2], apply_values[1]),
+                flow.productExtract(6, apply_values[0]),
+                flow.constant(bool, context.false_index),
                 flow.integerAdd(flow.productExtract(8, apply_values[0]), flow.constant(u32, context.one_index)),
-            );
-            flow.jump(joined, .{next});
+                flow.productExtract(9, apply_values[0]),
+                flow.productExtract(10, apply_values[0]),
+            })});
             return flow.enter(joined)[0];
         }
 

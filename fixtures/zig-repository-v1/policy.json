@@ -1,0 +1,25 @@
+{
+  "format": "praxis-workspace-policy/v1",
+  "repository": "tkersey/praxis-fixture",
+  "baseRevision": "0000000000000000000000000000000000000000",
+  "readablePaths": [
+    "build.zig",
+    "build.zig.zon",
+    "src/range.zig",
+    "test/range_test.zig"
+  ],
+  "writablePaths": [
+    "src/range.zig",
+    "test/range_test.zig"
+  ],
+  "check": {
+    "kind": "zig-build-check-v1",
+    "argv": ["build", "check", "--summary", "all"]
+  },
+  "limits": {
+    "maximumFileBytes": 16384,
+    "maximumListedFiles": 64,
+    "maximumChangedFiles": 4,
+    "maximumMutationOperations": 6
+  }
+}

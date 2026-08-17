@@ -1,0 +1,7 @@
+.{
+    .name = .praxis_zig_repository_v1,
+    .version = "0.0.0",
+    .fingerprint = 0x4a387bbf1bc637cc,
+    .minimum_zig_version = "0.16.0",
+    .paths = .{ "build.zig", "build.zig.zon", "src", "test" },
+}

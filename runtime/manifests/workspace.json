@@ -1,0 +1,21 @@
+{
+  "format": "praxis-capability-pack/v1",
+  "packageName": "@tkersey/praxis",
+  "driverId": "praxis-workspace.v1",
+  "bindingManifest": "repository-steward.binding-manifest.json",
+  "bindings": [
+    "praxis-workspace.list.v1",
+    "praxis-workspace.read.v1",
+    "praxis-workspace.search.v1",
+    "praxis-workspace.test.v1",
+    "praxis-workspace.replace.v1"
+  ],
+  "actuationClass": "repository",
+  "recoveryClasses": {
+    "list": "idempotent",
+    "read": "idempotent",
+    "search": "idempotent",
+    "test": "retryable",
+    "replace": "idempotent"
+  }
+}

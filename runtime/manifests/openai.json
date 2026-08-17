@@ -1,0 +1,11 @@
+{
+  "format": "praxis-capability-pack/v1",
+  "packageName": "@tkersey/praxis",
+  "driverId": "praxis-openai.v1",
+  "bindingManifest": "repository-steward.binding-manifest.json",
+  "bindings": ["praxis-openai.v1"],
+  "actuationClass": "model",
+  "recoveryClasses": { "decide": "retryable" },
+  "networkHosts": ["api.openai.com"],
+  "secretRequirements": ["OPENAI_API_KEY"]
+}

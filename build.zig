@@ -80,16 +80,16 @@ pub fn build(b: *std.Build) void {
     });
     const wasm_agent_dependency = b.dependency("agent", .{
         .target = wasm_target,
-        .optimize = .ReleaseSmall,
+        .optimize = .ReleaseFast,
     });
     const wasm_world_dependency = b.dependency("world", .{
         .target = wasm_target,
-        .optimize = .ReleaseSmall,
+        .optimize = .ReleaseFast,
     });
     const wasm_application = applicationModule(
         b,
         wasm_target,
-        .ReleaseSmall,
+        .ReleaseFast,
         wasm_agent_dependency.module("agent"),
         wasm_agent_dependency.module("boundary"),
         wasm_world_dependency.module("world"),
@@ -99,7 +99,7 @@ pub fn build(b: *std.Build) void {
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/wasm_main.zig"),
             .target = wasm_target,
-            .optimize = .ReleaseSmall,
+            .optimize = .ReleaseFast,
             .imports = &.{
                 .{ .name = "world", .module = wasm_world_dependency.module("world") },
                 .{ .name = "praxis_application", .module = wasm_application },

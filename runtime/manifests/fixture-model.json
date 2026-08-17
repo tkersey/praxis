@@ -1,0 +1,11 @@
+{
+  "format": "praxis-capability-pack/v1",
+  "packageName": "@tkersey/praxis",
+  "driverId": "praxis-fixture-model.v1",
+  "bindingManifest": "repository-steward.binding-manifest.json",
+  "bindings": ["praxis-fixture-model.v1"],
+  "actuationClass": "model",
+  "recoveryClasses": { "decide": "retryable" },
+  "fixtureOnly": true,
+  "secretRequirements": []
+}

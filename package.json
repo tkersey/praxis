@@ -2,6 +2,10 @@
   "type": "module",
   "scripts": {
     "check": "bun run check:local",
-    "check:local": "zig build install && bun tools/check-codecs.mjs && bun test test/runtime.test.mjs"
+    "check:local": "zig build install && bun tools/check-lock.mjs && bun tools/reference-stack.mjs && bun tools/check-artifacts.mjs && bun tools/check-codecs.mjs && bun tools/check-packs.mjs && bun test test/runtime.test.mjs test/workspace-adapter.test.mjs test/bindings.test.mjs test/openai-adapter.test.mjs test/fixture-model-adapter.test.mjs",
+    "check:lock": "bun tools/check-lock.mjs",
+    "check:reference-stack": "bun tools/reference-stack.mjs",
+    "check:reference-stack-offline": "bun tools/reference-stack.mjs --offline true",
+    "check:deterministic": "bun tools/run.mjs --mode deterministic"
   }
 }

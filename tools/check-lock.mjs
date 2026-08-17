@@ -1,0 +1,52 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const lockPath = new URL("../conformance/praxis-v1/reference-stack.lock.json", import.meta.url);
+const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+const exactTuple = {
+  agent: "2.5.0",
+  boundary: "1.5.0",
+  world: "3.1.3",
+  worldHost: "1.0.1",
+  worldCapabilities: "2.3.2",
+  zig: "0.16.0",
+  machineAbi: 2,
+  machineStateFormat: "ABL_RNF2",
+  applicationAbi: 1,
+  frame: 1,
+  effectProtocol: 1,
+  maximumPendingEffects: 1,
+};
+const exactArchives = {
+  agent: {
+    url: "https://github.com/tkersey/agent/archive/refs/tags/v2.5.0.tar.gz",
+    sha256: "fae016f03150c00bb74930184d3400b0ab64c66d6c871b24e2d4df8c6afa1168",
+    packageHash: "agent-2.5.0-dBg3hA8mDgDqOVnJF_4OVessuwfB7sqx6Z1jdYs6f9_p",
+    root: "agent-2.5.0",
+  },
+  boundary: {
+    url: "https://github.com/tkersey/boundary/archive/refs/tags/v1.5.0.tar.gz",
+    sha256: "8bcf9cf4f289eb3e530cae37089411dfc0014963fb6e0978474fa08a39fcedea",
+    packageHash: "boundary-1.5.0-flclaGtSEQDH_RFNHovmN4QfnmRMnFoNfyYq_84rZrsr",
+    root: "boundary-1.5.0",
+  },
+  world: {
+    url: "https://github.com/tkersey/world/archive/refs/tags/v3.1.3.tar.gz",
+    sha256: "1333a27aa4538c255b8a6c515c9151987fd5402c0be43a9a2501703599d1a5a9",
+    packageHash: "world-3.1.3-XXTUeKXGBgDDzZ7uarFCYSLwYD8pGNBMNdIYfgIcu23v",
+    root: "world-3.1.3",
+  },
+  worldHost: {
+    url: "https://github.com/tkersey/world-host/releases/download/v1.0.1/world-host-v1.0.1-runtime.tar.gz",
+    sha256: "e501ab1fe540ed2ee5cbd1db5a027f00271f95694747160fe36fa64cffaab52d",
+    root: "world-host-v1.0.1-runtime",
+  },
+  worldCapabilities: {
+    url: "https://github.com/tkersey/world-capabilities/releases/download/v2.3.2/world-capabilities-v2.3.2-deterministic.tar.gz",
+    sha256: "270f9d149a9fc90b48c08b7eecc7b812e5e0d3b42f76c68797daa0654b58ed91",
+    root: "world-capabilities-v2.3.2-deterministic",
+  },
+};
+
+assert.deepEqual(lock, { format: "praxis-reference-stack-lock-v1", tuple: exactTuple, archives: exactArchives });
+process.stdout.write("praxis_reference_stack_lock=true\n");
