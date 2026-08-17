@@ -1,0 +1,83 @@
+{
+  "praxis_format": 1,
+  "mode": "live",
+  "candidate_commit": "545110b51a332ffd30a34549eb1ce8ac7914327d",
+  "application_id": "a626ea84e285f7125ce6dc434a58e64c8b3f2402d78e7c1f91f5b3385c226439",
+  "application_wasm_sha256": "1a0bddb0ef1d3658a7c9bd7b5b487b12f5beca39469a0118823e786930b48e4a",
+  "repository": "tkersey/agent",
+  "base_revision": "5293368caeab0008fac1a6971aa660fa3ea87604",
+  "task_sha256": "fccd9e335a61db016015c47063e2168c968b76b42f230320bf2006ef60bf8d09",
+  "policy_sha256": "596f75942e0624a49c09a7d35d8bc7dbe15e81a1b54768c457fd322fc4c52d16",
+  "genesis_frame_id": "d024ac5e56daab693d6a0554ea0aa65f4b2a37209f5c45591e7e61cfd3b3dd82",
+  "terminal_frame_id": "819064c7323d3faeb9953384882192a048d1cbaee5fa3afb94bea4e8c3e5deaf",
+  "terminal_status": "completed",
+  "external_effect_count": 13,
+  "model_effect_count": 7,
+  "non_model_effect_count": 6,
+  "test_count": 2,
+  "mutation_count": 1,
+  "unique_changed_file_count": 1,
+  "changed_paths": [
+    "src/definition.zig"
+  ],
+  "ordered_interfaces": [
+    "model.decide.v1",
+    "repo.list.v2",
+    "model.decide.v1",
+    "repo.read.v2",
+    "model.decide.v1",
+    "repo.search.v2",
+    "model.decide.v1",
+    "repo.test.v2",
+    "model.decide.v1",
+    "repo.replace.approved.v2",
+    "model.decide.v1",
+    "repo.test.v2",
+    "model.decide.v1"
+  ],
+  "approval_bindings": [
+    {
+      "request_id": "c5a02c17c852860c146b76262c87f60865f03ab9c38757b53365cde9487f8a44",
+      "proposal_digest": "54d725ceb689cc664866129eacdb8523a2dba4a99355e2517c67c1e272481842",
+      "path": "src/definition.zig",
+      "expected_sha256": "8bd3eed33a0b2bc91802d212e69e54e183afc3f5a2d0e94a2cf484d006b89f0b",
+      "replacement_sha256": "317c27d0f7c4e49357d4516d4f5e71aca5544cfb717895b09f71d5218aacf7df",
+      "policy_digest": "596f75942e0624a49c09a7d35d8bc7dbe15e81a1b54768c457fd322fc4c52d16"
+    }
+  ],
+  "final_diff_sha256": "74784488f257d5338976a52e7053bc2c18ad541ddd1f6017b9effea88384a7bd",
+  "typed_final_result": true,
+  "final_check_passed": true,
+  "independent_verifier_passed": true,
+  "fresh_worker_per_step": true,
+  "manual_file_edits": 0,
+  "unapproved_writes": 0,
+  "openai_responses_api": true,
+  "openai_tools_count": 0,
+  "openai_store": false,
+  "openai_api_key_recorded": false,
+  "raw_prompt_recorded": false,
+  "raw_repository_content_recorded": false,
+  "raw_model_output_recorded": false,
+  "provider_returned_models": [
+    "gpt-5.6-sol"
+  ],
+  "provider_response_id_digests": [
+    "1f94d2818b68f705d7f924b6f0f64612f9887abc319622576e441f3e62d6bd03",
+    "ced7568ac0658e78abcd13b335145840a54a724b9faa15390996386ad6749af7",
+    "efbd4838a3d4ffec3bde4e804a59de6d60de2f6464d37ad2d443911195e729f7",
+    "a3768629712243641e1c579b40e14c8bc880578a06747b7bde7de01facf50f42",
+    "310d6b41965626def67ea9764e31afe8e2164782241655f34888d59ca32e39dd",
+    "2da556f2ad90a8a265b7c87f567c9c41a964c1fc6a851b8ea484d4e4b86e465d",
+    "86f006c97bb86879116d1503f1e29a0e291bb24c8051f2c5fecb51bfdaa63d86"
+  ],
+  "input_tokens": 32883,
+  "output_tokens": 4048,
+  "total_tokens": 36931,
+  "live_attempt_count": 10,
+  "live_success_count": 1,
+  "private_evidence_digest": "62060af2d1ba1a7cffac6dd516ca28b21ad9e01230dd1474c88af4fcad19b0c7",
+  "terminal_file_digests": {
+    "src/definition.zig": "317c27d0f7c4e49357d4516d4f5e71aca5544cfb717895b09f71d5218aacf7df"
+  }
+}

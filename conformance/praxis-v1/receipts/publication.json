@@ -1,0 +1,16 @@
+{
+  "praxis_format": 1,
+  "mode": "publication",
+  "repository": "tkersey/agent",
+  "base_revision": "5293368caeab0008fac1a6971aa660fa3ea87604",
+  "head_revision": "725e3f1213d95717f7e5cdb9e3daf973e3f5eeed",
+  "branch": "praxis/v1-reject-child-agent-terminal-classes",
+  "pull_request_number": 18,
+  "pull_request_url": "https://github.com/tkersey/agent/pull/18",
+  "draft": true,
+  "candidate_commit": "545110b51a332ffd30a34549eb1ce8ac7914327d",
+  "application_id": "a626ea84e285f7125ce6dc434a58e64c8b3f2402d78e7c1f91f5b3385c226439",
+  "live_receipt_sha256": "99501d2c4e6de386c77e190fa79464b8c1faef84a31bc60215452f09b3f8850f",
+  "final_diff_sha256": "74784488f257d5338976a52e7053bc2c18ad541ddd1f6017b9effea88384a7bd",
+  "published_tree_matches_verified_diff": true
+}
