@@ -6,6 +6,10 @@
             .url = "https://github.com/tkersey/agent/archive/refs/tags/v2.5.0.tar.gz",
             .hash = "agent-2.5.0-dBg3hA8mDgDqOVnJF_4OVessuwfB7sqx6Z1jdYs6f9_p",
         },
+        .world = .{
+            .url = "https://github.com/tkersey/world/archive/refs/tags/v3.1.3.tar.gz",
+            .hash = "world-3.1.3-XXTUeKXGBgDDzZ7uarFCYSLwYD8pGNBMNdIYfgIcu23v",
+        },
     },
     .minimum_zig_version = "0.16.0",
     .fingerprint = 0x9db9462b8b297b90,
