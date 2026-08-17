@@ -36,7 +36,7 @@ function parseArgs(argv) {
   return result;
 }
 
-async function prepareRepository(runRoot) {
+export async function prepareRepository(runRoot) {
   const source = path.join(runRoot, "source"); const worktree = path.join(runRoot, "worktree");
   await fsp.mkdir(path.join(source, "src"), { recursive: true }); await fsp.mkdir(path.join(source, "test"), { recursive: true });
   for (const relative of ["build.zig", "build.zig.zon", "src/range.zig", "test/range_test.zig"]) {
@@ -54,7 +54,7 @@ async function prepareRepository(runRoot) {
   return { source, worktree, baseRevision };
 }
 
-async function initialArgs(options, taskPath, baseRevision) {
+export async function initialArgs(options, taskPath, baseRevision) {
   const executable = path.join(repositoryRoot, "zig-out/bin/praxis-initial-args");
   const result = command(executable, ["--task-file", taskPath, "--repository", "tkersey/praxis-fixture", "--base-revision", baseRevision], { binary: true });
   return Buffer.from(result.stdout);
@@ -99,6 +99,7 @@ export async function runDeterministic(rawOptions = {}) {
     wasmBytes, blockStore, headStore, effectJournal,
     workerFactory: () => { workerCount += 1; return new host.ApplicationWorker({ maximumMemoryBytes: 256 * 1024 * 1024 }); },
     preflight: async (manifest) => ({ blockers: Buffer.from(manifest.applicationId).toString("hex") === bindingManifest.applicationId ? [] : ["application_id_mismatch"] }),
+    faultInjector: rawOptions.faultInjector ?? (async () => {}),
   });
   const context = {
     applicationId: bindingManifest.applicationId, runId: options.runId,
@@ -110,10 +111,15 @@ export async function runDeterministic(rawOptions = {}) {
     manualFileEdits: 0, unapprovedWrites: 0,
   };
   const args = await initialArgs(options, taskPath, prepared.baseRevision);
-  const runId = options.runId; const branchId = "main"; const trace = { frames: [], results: [] };
+  const runId = options.runId; const branchId = "main";
+  const trace = { frames: [], results: [], stepNanoseconds: [] };
+  rawOptions.onEnvironment?.({ controller, context, prepared, runId, branchId, args, wasmBytes, bindingManifest, host });
+  let started = process.hrtime.bigint();
   let transition = await controller.initialize(runId, branchId, { initialArgsBytes: args });
+  trace.stepNanoseconds.push(Number(process.hrtime.bigint() - started));
   const genesisFrameId = Buffer.from(transition.frame.frameId).toString("hex");
   const orderedInterfaces = []; let fuelYields = 0; let identicalYields = 0; let previousYieldDigest = null;
+  let firstDecisionPayloadBytes = null; let peakDecisionPayloadBytes = 0;
   while (true) {
     assert.equal(transition.status, "advanced");
     const frame = transition.frame; trace.frames.push(Buffer.from(transition.frameBytes).toString("base64"));
@@ -122,18 +128,30 @@ export async function runDeterministic(rawOptions = {}) {
     if (frame.status === host.FrameStatus.yieldedFuel) {
       fuelYields += 1; const digest = sha256(frame.stateBytes); identicalYields = digest === previousYieldDigest ? identicalYields + 1 : 1; previousYieldDigest = digest;
       if (identicalYields >= 10) throw new Error("fuel stall: ten identical yielded state digests");
-      transition = await controller.advance(runId, branchId); continue;
+      started = process.hrtime.bigint();
+      transition = await controller.advance(runId, branchId);
+      trace.stepNanoseconds.push(Number(process.hrtime.bigint() - started));
+      continue;
     }
     assert.equal(frame.status, host.FrameStatus.needsEffect);
     const requestBytes = frame.pendingEffect.encodedBytes; const inspected = router.inspect(requestBytes);
     const interfaceEntry = bindingManifest.interfaces.find((entry) => entry.interfaceId === Buffer.from(frame.pendingEffect.interfaceId).toString("hex"));
     assert.ok(interfaceEntry); orderedInterfaces.push(interfaceEntry.interfaceLabel);
+    if (interfaceEntry.interfaceLabel === "model.decide.v1") {
+      const payloadBytes = frame.pendingEffect.payloadBytes.length;
+      if (firstDecisionPayloadBytes === null) firstDecisionPayloadBytes = payloadBytes;
+      peakDecisionPayloadBytes = Math.max(peakDecisionPayloadBytes, payloadBytes);
+    }
     const resolution = await router.resolve(context, requestBytes);
-    trace.results.push(Buffer.from(resolution.result.encodedBytes).toString("base64"));
+    const metadata = { handlerId: resolution.handlerIdentity, handlerConfigurationId: resolution.handlerConfigurationIdentity, recoveryClass: resolution.recoveryClass };
+    trace.results.push({ encodedBytes: Buffer.from(resolution.result.encodedBytes).toString("base64"), metadata, interfaceLabel: interfaceEntry.interfaceLabel });
+    await rawOptions.beforeEffectAdvance?.({ transition, resolution, interfaceEntry, metadata, context });
+    started = process.hrtime.bigint();
     transition = await controller.advance(runId, branchId, {
       effectResult: resolution.result,
-      effectMetadata: { handlerId: resolution.handlerIdentity, handlerConfigurationId: resolution.handlerConfigurationIdentity, recoveryClass: resolution.recoveryClass },
+      effectMetadata: metadata,
     });
+    trace.stepNanoseconds.push(Number(process.hrtime.bigint() - started));
     assert.equal(inspected.effectAttempted, false);
   }
   const terminal = transition.frame; const finalResult = decodeFinalResult(terminal.finalResultBytes);
@@ -156,11 +174,23 @@ export async function runDeterministic(rawOptions = {}) {
     fresh_worker_per_step: workerCount === trace.frames.length + 1,
     manual_file_edits: context.manualFileEdits, unapproved_writes: context.unapprovedWrites,
   };
+  trace.measurements = {
+    applicationWasmBytes: wasmBytes.length,
+    firstFrameBytes: Buffer.from(trace.frames[0], "base64").length,
+    peakFrameBytes: Math.max(...trace.frames.map((value) => Buffer.from(value, "base64").length)),
+    peakMachineStateBytes: Math.max(...trace.frames.map((value) => host.decodeFrame(Buffer.from(value, "base64"), controller.manifest.limits).stateBytes.length)),
+    firstDecisionPayloadBytes,
+    peakDecisionPayloadBytes,
+    coldStepNanoseconds: trace.stepNanoseconds[0],
+    warmStepNanoseconds: trace.stepNanoseconds.length > 1 ? Math.min(...trace.stepNanoseconds.slice(1)) : trace.stepNanoseconds[0],
+    stepCount: trace.frames.length,
+    fuelYieldCount: fuelYields,
+  };
   assert.ok(receipt.mutation_count >= 2); assert.equal(receipt.test_count, receipt.mutation_count + 1); assert.equal(receipt.approval_bindings.length, receipt.mutation_count);
   assert.equal(receipt.fresh_worker_per_step, true);
   await fsp.writeFile(path.join(runRoot, "trace.json"), `${JSON.stringify({ ...trace, receipt, finalResult, fuelYields }, null, 2)}\n`, { mode: 0o600 });
   await fsp.mkdir(path.dirname(options.receipt), { recursive: true }); await fsp.writeFile(options.receipt, `${JSON.stringify(receipt, null, 2)}\n`);
-  return { receipt, finalResult, runRoot, worktree: prepared.worktree, trace, hidden, controller, context, prepared };
+  return { receipt, finalResult, runRoot, worktree: prepared.worktree, trace, hidden, controller, context, prepared, args, wasmBytes, bindingManifest, host };
 }
 
 if (import.meta.main) {

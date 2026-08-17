@@ -6,6 +6,9 @@
     "check:lock": "bun tools/check-lock.mjs",
     "check:reference-stack": "bun tools/reference-stack.mjs",
     "check:reference-stack-offline": "bun tools/reference-stack.mjs --offline true",
-    "check:deterministic": "bun tools/run.mjs --mode deterministic"
+    "check:deterministic": "bun tools/run.mjs --mode deterministic",
+    "check:retry": "bun tools/run.mjs --mode retry",
+    "check:replay": "bun tools/run.mjs --mode replay",
+    "check:measure": "bun tools/run.mjs --mode measure"
   }
 }
