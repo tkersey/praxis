@@ -1,0 +1,16 @@
+{
+  "praxis_format": 1,
+  "mode": "replay",
+  "candidate_commit": "c13b42a60f11d22ebe683e999a7969dc7fed6ea8",
+  "application_id": "a626ea84e285f7125ce6dc434a58e64c8b3f2402d78e7c1f91f5b3385c226439",
+  "application_wasm_sha256": "1a0bddb0ef1d3658a7c9bd7b5b487b12f5beca39469a0118823e786930b48e4a",
+  "genesis_frame_id": "1ad9e8363a889a52b409e61f9ab1cec67f2421df405f1f70d9c86180f96387b9",
+  "terminal_frame_id": "d40e92a8eeb86ab5b9ea9f6dd4e33455eae76dab08d5e35867cc602670abef6e",
+  "replay_fresh_effect_count": 0,
+  "replay_fresh_model_effect_count": 0,
+  "replay_fresh_repository_effect_count": 0,
+  "replay_terminal_result_equal": true,
+  "replay_terminal_frame_byte_identical": true,
+  "replay_worktree_unchanged": true,
+  "fresh_worker_per_step": true
+}

@@ -1,0 +1,41 @@
+{
+  "praxis_format": 1,
+  "mode": "measure",
+  "candidate_commit": "c13b42a60f11d22ebe683e999a7969dc7fed6ea8",
+  "application_id": "a626ea84e285f7125ce6dc434a58e64c8b3f2402d78e7c1f91f5b3385c226439",
+  "application_wasm_sha256": "1a0bddb0ef1d3658a7c9bd7b5b487b12f5beca39469a0118823e786930b48e4a",
+  "measurements": {
+    "applicationWasmBytes": 2518020,
+    "firstFrameBytes": 1954,
+    "peakFrameBytes": 22158,
+    "peakMachineStateBytes": 18007,
+    "firstDecisionPayloadBytes": 333,
+    "peakDecisionPayloadBytes": 3695,
+    "coldStepNanoseconds": 19407584,
+    "warmStepNanoseconds": 17135709,
+    "stepCount": 29,
+    "fuelYieldCount": 9,
+    "applicationStateLimitBytes": 524288,
+    "wasmStackBytes": 134217728,
+    "wasmMemoryBytes": 268435456,
+    "externalEffectCount": 19,
+    "modelEffectCount": 10,
+    "nonModelEffectCount": 9,
+    "appliedReplacements": 2,
+    "distinctChangedFiles": 2
+  },
+  "gates": {
+    "applicationWasm": true,
+    "peakFrame": true,
+    "peakMachineState": true,
+    "applicationStateLimit": true,
+    "wasmStack": true,
+    "wasmMemory": true,
+    "decisionPayload": true,
+    "externalEffects": true,
+    "modelEffects": true,
+    "nonModelEffects": true,
+    "appliedReplacements": true,
+    "distinctChangedFiles": true
+  }
+}
