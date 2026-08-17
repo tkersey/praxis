@@ -2,6 +2,12 @@ const args = process.argv.slice(2);
 const modeIndex = args.indexOf("--mode");
 if (modeIndex < 0 || !args[modeIndex + 1]) throw new Error("--mode is required");
 const mode = args[modeIndex + 1]; const rest = [...args.slice(0, modeIndex), ...args.slice(modeIndex + 2)];
+if (mode === "live") {
+  const { runLive, _liveInternals } = await import("./live.mjs");
+  await runLive(_liveInternals.parseArgs(rest));
+  process.stdout.write("praxis_live=true\n");
+  process.exit(0);
+}
 if (rest.length % 2 !== 0) throw new Error("Praxis options require flag/value pairs");
 const options = {};
 for (let index = 0; index < rest.length; index += 2) {
@@ -23,4 +29,9 @@ if (mode === "deterministic") {
   const { proveMeasurements } = await import("./measure.mjs");
   await proveMeasurements(options);
   process.stdout.write("praxis_measure=true\n");
+} else if (mode === "freeze") {
+  if (rest.length !== 0) throw new Error("freeze accepts no additional arguments");
+  const { freezeCandidate } = await import("./candidate.mjs");
+  await freezeCandidate();
+  process.stdout.write("praxis_candidate_frozen=true\n");
 } else throw new Error(`unsupported Praxis mode: ${mode}`);

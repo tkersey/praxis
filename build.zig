@@ -280,6 +280,15 @@ pub fn build(b: *std.Build) void {
     check.dependOn(&run_binding_manifest.step);
     check.dependOn(&type_measurements.step);
     check.dependOn(&run_codec_vectors.step);
+    check.dependOn(&install_wasm.step);
+    check.dependOn(&install_manifest.step);
+    check.dependOn(&install_manifest_text.step);
+    check.dependOn(&install_contract_json.step);
+    check.dependOn(&install_contract_binary.step);
+    check.dependOn(&install_binding_manifest.step);
+    check.dependOn(&install_type_measurements.step);
+    check.dependOn(&install_codec_vectors.step);
+    check.dependOn(&install_initial_args.step);
     const text_comparison_obstruction = b.addSystemCommand(&.{
         "node",
         "conformance/praxis-v1/obstructions/agent-text-comparison/reproducer/verify.mjs",

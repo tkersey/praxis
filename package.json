@@ -1,14 +1,18 @@
 {
   "type": "module",
   "scripts": {
-    "check": "bun run check:local",
-    "check:local": "zig build install && bun tools/check-lock.mjs && bun tools/reference-stack.mjs && bun tools/check-artifacts.mjs && bun tools/check-codecs.mjs && bun tools/check-packs.mjs && bun test test/runtime.test.mjs test/workspace-adapter.test.mjs test/bindings.test.mjs test/openai-adapter.test.mjs test/fixture-model-adapter.test.mjs",
+    "check": "bun run check:local && bun run check:reference-stack && bun run check:deterministic && bun run check:retry && bun run check:replay && bun run check:measure",
+    "check:local": "zig build check && bun tools/check-codecs.mjs && bun tools/check-packs.mjs && bun tools/check-artifacts.mjs && bun test test/runtime.test.mjs test/workspace-adapter.test.mjs test/bindings.test.mjs test/openai-adapter.test.mjs test/fixture-model-adapter.test.mjs test/live.test.mjs",
     "check:lock": "bun tools/check-lock.mjs",
     "check:reference-stack": "bun tools/reference-stack.mjs",
     "check:reference-stack-offline": "bun tools/reference-stack.mjs --offline true",
     "check:deterministic": "bun tools/run.mjs --mode deterministic",
     "check:retry": "bun tools/run.mjs --mode retry",
     "check:replay": "bun tools/run.mjs --mode replay",
-    "check:measure": "bun tools/run.mjs --mode measure"
+    "check:measure": "bun tools/run.mjs --mode measure",
+    "freeze:candidate": "bun tools/run.mjs --mode freeze",
+    "praxis": "bun tools/run.mjs --mode live",
+    "publish": "bun tools/publish.mjs",
+    "check:release": "bun tools/build-release.mjs"
   }
 }

@@ -3,3 +3,4 @@
 /zig-pkg/
 /.praxis/
 /fixtures/**/.zig-cache/
+/release/
