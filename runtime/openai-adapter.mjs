@@ -4,6 +4,7 @@ import { encodeAction } from "./codecs.mjs";
 export const responsesEndpoint = "https://api.openai.com/v1/responses";
 const defaultFetch = fetch;
 const maximumResponseBytes = 4 * 1024 * 1024;
+const decisionTransportInstructions = "Return exactly one action for the current decision and then stop. Do not return a plan, narration, progress update, or any later action. The entire assistant output must be one JSON value matching the supplied schema.";
 
 function outcome(request, status, payload, claims) { return { requestId: request?.requestId ?? "unknown", status, payload, ...(claims ? { claims } : {}) }; }
 function reject(request, reason) { return outcome(request, "rejected", { reason }); }
@@ -91,7 +92,7 @@ function responsesRequest(context, request) {
     store: false,
     background: false,
     input: [
-      { role: "developer", content: [{ type: "input_text", text: contract.instructions }] },
+      { role: "developer", content: [{ type: "input_text", text: `${contract.instructions}\n\n${decisionTransportInstructions}` }] },
       { role: "user", content: [{ type: "input_text", text: JSON.stringify(request.payload) }] },
     ],
     text: { format: { type: "json_schema", name: "praxis_repository_steward_action", strict: true, schema: strictSchema(contract.actionSchema) } },
@@ -153,4 +154,4 @@ export async function recover(_context, effectRecord) {
   return effectRecord?.recordedResolution ? structuredClone(effectRecord.recordedResolution) : { status: "failed", payload: { reason: "recorded_resolution_required" } };
 }
 
-export const _openAiInternals = { normalizeStrictNode, strictSchema, actionFromProviderText, actionFromProviderTexts, responsesRequest, exactResponse };
+export const _openAiInternals = { decisionTransportInstructions, normalizeStrictNode, strictSchema, actionFromProviderText, actionFromProviderTexts, responsesRequest, exactResponse };

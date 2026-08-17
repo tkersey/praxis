@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import fs from "node:fs";
-import { resolve, preflight } from "../runtime/openai-adapter.mjs";
+import { resolve, preflight, _openAiInternals } from "../runtime/openai-adapter.mjs";
 
 const decisionContract = JSON.parse(fs.readFileSync("zig-out/repository-steward/repository-steward.decision-contract.json", "utf8"));
 const applicationId = "c1f1aa7fffda9444dc327b724256397bd32857c5215d6a5588e0658f6cfa7306";
@@ -45,6 +45,8 @@ describe("OpenAI decision adapter", () => {
     expect(calls).toBe(1); expect(result.status).toBe("ok"); expect(result.payload).toEqual({ action: "list_repository", arguments: {} });
     expect(sent.store).toBe(false); expect(sent.background).toBe(false); expect(sent.tools).toEqual([]); expect(sent.text.format.strict).toBe(true);
     expect(sent.text.format.schema.required).toEqual(["value"]);
+    expect(sent.input[0].content[0].text).toStartWith(decisionContract.instructions);
+    expect(sent.input[0].content[0].text).toContain(_openAiInternals.decisionTransportInstructions);
     const readVariant = sent.text.format.schema.properties.value.anyOf.find((variant) => variant.properties.action.const === "read_file");
     expect(readVariant.properties.action.type).toBe("string");
     expect(readVariant.properties.arguments.required).toEqual(["path"]);
