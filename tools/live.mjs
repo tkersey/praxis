@@ -83,7 +83,7 @@ async function writeFailure(options, runId, details) {
     repository: options.repository,
     base_revision: options.baseRevision,
     terminal_status: details.terminalStatus ?? "failed",
-    failure_class: String(details.error?.message ?? details.error ?? "unknown_failure").slice(0, 256),
+    failure_class: String(details.providerFailureClass ?? details.error?.message ?? details.error ?? "unknown_failure").slice(0, 256),
     external_effect_count: details.orderedInterfaces?.length ?? 0,
     ordered_interfaces: details.orderedInterfaces ?? [],
     raw_prompt_recorded: false,
@@ -101,7 +101,7 @@ async function writeFailure(options, runId, details) {
 export async function runLive(options) {
   const runId = `live-${new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14)}-${randomUUID()}`;
   const runRoot = path.join(options.store, "runs", runId);
-  let candidate = null; const orderedInterfaces = []; let terminalStatus = null;
+  let candidate = null; const orderedInterfaces = []; let terminalStatus = null; let context = null;
   try {
     if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is required");
     if (!process.env.OPENAI_MODEL) throw new Error("OPENAI_MODEL is required");
@@ -129,7 +129,7 @@ export async function runLive(options) {
     const decisionContract = JSON.parse(await readFile(path.join(artifactsRoot, "repository-steward.decision-contract.json"), "utf8"));
     const wasmBytes = await readFile(path.join(artifactsRoot, "repository-steward.world.wasm"));
     assert.equal(bindingManifest.applicationId, candidate.applicationId); assert.equal(sha256(wasmBytes), candidate.applicationWasmSha256);
-    const context = {
+    context = {
       applicationId: candidate.applicationId, runId, workspaceRoot: worktree, workspaceRootReal,
       repository: options.repository, baseRevision: options.baseRevision, policy: admitted.policy, policyDigest: admitted.digest,
       zigExecutable: options.zigExecutable, zigVersion: "0.16.0", temporaryHome, approvalRoot,
@@ -228,7 +228,7 @@ export async function runLive(options) {
     await writePublicReceipt(attemptReceipt, receipt); await writePublicReceipt(options.receipt, receipt);
     return Object.freeze({ receipt, worktree, runRoot, approvalRoot, policy: rawPolicy, verifier });
   } catch (error) {
-    await writeFailure(options, runId, { candidate, error, terminalStatus, orderedInterfaces });
+    await writeFailure(options, runId, { candidate, error, terminalStatus, orderedInterfaces, providerFailureClass: context?.lastOpenAiFailure });
     throw error;
   }
 }

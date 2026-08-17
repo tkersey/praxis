@@ -35,19 +35,25 @@ function completed(outputText) {
   };
 }
 
+const providerAction = (action) => JSON.stringify({ value: action });
+
 describe("OpenAI decision adapter", () => {
   test("binds one strict Responses request and emits only redacted claims", async () => {
     let calls = 0; let sent;
-    const fetchImplementation = async (_url, init) => { calls += 1; sent = JSON.parse(init.body); return response(completed(JSON.stringify({ action: "list_repository", arguments: {} }))); };
+    const fetchImplementation = async (_url, init) => { calls += 1; sent = JSON.parse(init.body); return response(completed(providerAction({ action: "list_repository", arguments: {} }))); };
     const result = await resolve(context(fetchImplementation), request);
     expect(calls).toBe(1); expect(result.status).toBe("ok"); expect(result.payload).toEqual({ action: "list_repository", arguments: {} });
     expect(sent.store).toBe(false); expect(sent.background).toBe(false); expect(sent.tools).toEqual([]); expect(sent.text.format.strict).toBe(true);
+    expect(sent.text.format.schema.required).toEqual(["value"]);
+    const readVariant = sent.text.format.schema.properties.value.anyOf.find((variant) => variant.properties.action.const === "read_file");
+    expect(readVariant.properties.action.type).toBe("string");
+    expect(readVariant.properties.arguments.required).toEqual(["path"]);
     expect(result.claims).toEqual({ provider: "openai", endpointClass: "responses", requestedModel: "gpt-test", returnedModel: "gpt-test", responseIdSha256: expect.stringMatching(/^[0-9a-f]{64}$/), inputTokens: 10, outputTokens: 4, totalTokens: 14, store: false });
     expect(JSON.stringify(result.claims)).not.toContain("resp_private"); expect(JSON.stringify(result.claims)).not.toContain("test-secret");
   });
 
   test("admits one message accompanied by a reasoning item", async () => {
-    const body = completed(JSON.stringify({ action: "list_repository", arguments: {} }));
+    const body = completed(providerAction({ action: "list_repository", arguments: {} }));
     body.output.unshift({ type: "reasoning", id: "reasoning_private", summary: [] });
     const result = await resolve(context(async () => response(body)), request);
     expect(result.status).toBe("ok");
@@ -63,17 +69,21 @@ describe("OpenAI decision adapter", () => {
 
   test("rejects refusal, model mismatch, multiple output, and malformed action", async () => {
     const cases = [
-      { ...completed("{}"), model: "other" },
+      { ...completed(providerAction({ action: "list_repository", arguments: {} })), model: "other" },
       { ...completed("{}"), output: [completed("{}").output[0], completed("{}").output[0]] },
       { ...completed("{}"), output: [{ type: "tool_call" }, completed("{}").output[0]] },
       { ...completed("{}"), output: [{ type: "message", role: "assistant", content: [{ type: "refusal", refusal: "no" }] }] },
-      completed(JSON.stringify({ action: "read_file", arguments: { path: "src/main.zig", extra: true } })),
+      completed(providerAction({ action: "read_file", arguments: { path: "src/main.zig", extra: true } })),
+      completed(JSON.stringify({ action: "list_repository", arguments: {} })),
     ];
     for (const body of cases) expect((await resolve(context(async () => response(body)), request)).status).toBe("failed");
   });
 
   test("does not retry provider failures", async () => {
-    let calls = 0; const result = await resolve(context(async () => { calls += 1; throw new Error("offline"); }), request);
+    let calls = 0; const receiver = context(async () => { calls += 1; throw new Error("offline"); });
+    const result = await resolve(receiver, request);
     expect(result.status).toBe("failed"); expect(calls).toBe(1);
+    expect(receiver.lastOpenAiFailure).toBe("openai_transport_failed");
+    expect(receiver.lastOpenAiFailure).not.toContain("test-secret");
   });
 });
