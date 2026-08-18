@@ -248,7 +248,7 @@ pub const instructions =
 
 pub const Definition = agent.define(.{
     .name = "repository-steward",
-    .version = "1.0.3",
+    .version = "1.0.4",
     .instructions = instructions,
     .Goal = Goal,
     .Action = Action,
@@ -318,7 +318,7 @@ pub const Compiled = agent.compile(
         .machine = .{
             .maximum_frames = 48,
             .maximum_state_bytes = 511 * 1024,
-            .maximum_machine_fuel = 8_000_000,
+            .maximum_machine_fuel = 16_000_000,
         },
     },
 );

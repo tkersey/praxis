@@ -1,0 +1,14 @@
+{
+  "format": "praxis-obstruction-correction/v1",
+  "owner": "parent_application_obstruction",
+  "failed_release": "v1.0.3",
+  "failed_total_machine_fuel": 8000000,
+  "successor_total_machine_fuel": 16000000,
+  "failure_effect_count": 42,
+  "maximum_decisions": 48,
+  "maximum_effect_actions": 47,
+  "maximum_mutation_operations": 10,
+  "machine_abi": 2,
+  "application_abi": 1,
+  "effect_protocol": 1
+}
