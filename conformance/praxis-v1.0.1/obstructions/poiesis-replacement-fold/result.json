@@ -1,0 +1,17 @@
+{
+  "format": "praxis-obstruction-correction/v1",
+  "owner": "parent_application_obstruction",
+  "failed_release": "v1.0.0",
+  "failed_application_id": "a626ea84e285f7125ce6dc434a58e64c8b3f2402d78e7c1f91f5b3385c226439",
+  "failed_wasm_sha256": "1a0bddb0ef1d3658a7c9bd7b5b487b12f5beca39469a0118823e786930b48e4a",
+  "failed_poiesis_receipt_sha256": "5cee65cb9261c2312a255e1770017dd0042c66d6d9d35c49a0924b67d9ba3421",
+  "failed_step_fuel": 100000,
+  "successor_step_fuel": 1000000,
+  "replacement_result_bytes": 7086,
+  "identical_yield_count": 10,
+  "machine_abi": 2,
+  "machine_state": "ABL_RNF2",
+  "application_abi": 1,
+  "frame": 1,
+  "effect_protocol": 1
+}

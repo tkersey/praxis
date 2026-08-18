@@ -146,15 +146,16 @@ export async function runLive(options) {
       worldCapabilitiesRoot: path.join(stackRoot, "worldCapabilities/world-capabilities-v2.3.2-deterministic"), bindingManifest,
       workspaceAdapter, modelAdapter: openaiAdapter, modelBindingId: "praxis-openai.v1",
     });
-    const host = await import(pathToFileURL(path.join(stackRoot, "worldHost/world-host-v1.0.1-runtime/src/v1/index.mjs")).href);
+    const host = await import(pathToFileURL(path.join(stackRoot, "worldHost/world-host-v1.0.2-runtime/src/v1/index.mjs")).href);
+    const admissionLimits = Object.freeze({ ...host.DEFAULT_ADMISSION_LIMITS, maximumFuelPerStep: 1_000_000n });
     const runtimeRoot = path.join(runRoot, "runtime-store"); await mkdir(runtimeRoot, { recursive: true, mode: 0o700 });
     const blockStore = new host.DirectoryBlockStore(runtimeRoot);
     const headStore = new host.DirectoryBranchHeadStore(runtimeRoot, { blockStore });
     const effectJournal = new host.DirectoryEffectJournalV1({ root: runtimeRoot, blockStore });
     let workerCount = 0;
     const controller = await host.RunControllerV1.create({
-      wasmBytes, blockStore, headStore, effectJournal,
-      workerFactory: () => { workerCount += 1; return new host.ApplicationWorker({ maximumMemoryBytes: 256 * 1024 * 1024 }); },
+      wasmBytes, blockStore, headStore, admissionLimits, effectJournal,
+      workerFactory: () => { workerCount += 1; return new host.ApplicationWorker({ admissionLimits, maximumMemoryBytes: 256 * 1024 * 1024 }); },
       preflight: async (manifest) => ({ blockers: Buffer.from(manifest.applicationId).toString("hex") === candidate.applicationId ? [] : ["application_identity_mismatch"] }),
     });
     const branchId = "main"; let frameCount = 0; let transition = await controller.initialize(runId, branchId, { initialArgsBytes: Buffer.from(initialArgsResult.stdout) });

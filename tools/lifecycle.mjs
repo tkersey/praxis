@@ -104,11 +104,13 @@ export async function proveReplay(options = {}) {
   const prepared = await prepareRepository(replayRoot);
   assert.equal(prepared.baseRevision, recorded.prepared.baseRevision);
   let workerCount = 0;
+  const admissionLimits = Object.freeze({ ...recorded.host.DEFAULT_ADMISSION_LIMITS, maximumFuelPerStep: 1_000_000n });
   const controller = await recorded.host.RunControllerV1.create({
     wasmBytes: recorded.wasmBytes,
     blockStore: new recorded.host.MemoryBlockStore(),
     headStore: new recorded.host.MemoryBranchHeadStore(),
-    workerFactory: () => { workerCount += 1; return new recorded.host.ApplicationWorker({ maximumMemoryBytes: 256 * 1024 * 1024 }); },
+    admissionLimits,
+    workerFactory: () => { workerCount += 1; return new recorded.host.ApplicationWorker({ admissionLimits, maximumMemoryBytes: 256 * 1024 * 1024 }); },
     preflight: async (manifest) => ({ blockers: Buffer.from(manifest.applicationId).toString("hex") === recorded.bindingManifest.applicationId ? [] : ["application_id_mismatch"] }),
   });
   let stepCount = 1;

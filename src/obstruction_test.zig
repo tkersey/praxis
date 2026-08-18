@@ -590,7 +590,7 @@ test "the check target binds the exact frozen lock and Agent package" {
     var expected_lock_digest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected_lock_digest,
-        "afc8948f89000ee52eaf659804831c05608417553336c214b0b441a9ba9901b7",
+        "2faa97b6ea400bd5ede68ff0db1d5d463deec104253516251990dbc6cf254d12",
     );
     try std.testing.expectEqualSlices(u8, &expected_lock_digest, &lock_digest);
     var manifest_digest: [32]u8 = undefined;
@@ -602,7 +602,7 @@ test "the check target binds the exact frozen lock and Agent package" {
     var expected_manifest_digest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected_manifest_digest,
-        "e7340165d6d4b952268bcd0265dcd2fb7bf8871a6974346d8d00cca19744f983",
+        "26b7b3455d7e3a20a8952120a6ece8581e3063a4c92575dfd0c471cdeaa67b4a",
     );
     try std.testing.expectEqualSlices(u8, &expected_manifest_digest, &manifest_digest);
 

@@ -5,13 +5,14 @@ import { pathToFileURL } from "node:url";
 import { join, resolve } from "node:path";
 
 const artifacts = resolve(process.argv[2] ?? "zig-out/repository-steward");
-const worldHostRoot = resolve(process.argv[3] ?? ".praxis/reference-stack/extracted/worldHost/world-host-v1.0.1-runtime");
+const worldHostRoot = resolve(process.argv[3] ?? ".praxis/reference-stack/extracted/worldHost/world-host-v1.0.2-runtime");
 const capabilitiesRoot = resolve(process.argv[4] ?? ".praxis/reference-stack/extracted/worldCapabilities/world-capabilities-v2.3.2-deterministic");
 const host = await import(pathToFileURL(join(worldHostRoot, "src/v1/index.mjs")).href);
 const capability = await import(pathToFileURL(join(capabilitiesRoot, "src/v1/index.mjs")).href);
 
 const binding = JSON.parse(fs.readFileSync(join(artifacts, "repository-steward.binding-manifest.json"), "utf8"));
-const manifest = host.decodeApplicationManifest(fs.readFileSync(join(artifacts, "repository-steward.manifest.bin")));
+const admissionLimits = Object.freeze({ ...host.DEFAULT_ADMISSION_LIMITS, maximumFuelPerStep: 1_000_000n });
+const manifest = host.decodeApplicationManifest(fs.readFileSync(join(artifacts, "repository-steward.manifest.bin")), admissionLimits);
 const contract = JSON.parse(fs.readFileSync(join(artifacts, "repository-steward.decision-contract.json"), "utf8"));
 const contractBinary = fs.readFileSync(join(artifacts, "repository-steward.decision-contract.bin"));
 const applicationId = Buffer.from(manifest.applicationId).toString("hex");

@@ -1,6 +1,6 @@
 .{
     .name = .praxis,
-    .version = "1.0.0",
+    .version = "1.0.1",
     .dependencies = .{
         .agent = .{
             .url = "https://github.com/tkersey/agent/archive/refs/tags/v2.5.0.tar.gz",
