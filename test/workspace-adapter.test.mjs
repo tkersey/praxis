@@ -24,7 +24,7 @@ function rawPolicy(overrides = {}) {
     readablePaths: ["build.zig", "src/main.zig", "test/main.zig"],
     writablePaths: ["src/main.zig", "test/main.zig"],
     check: { kind: "zig-build-check-v1", argv: ["build", "check", "--summary", "all"] },
-    limits: { maximumFileBytes: 16384, maximumListedFiles: 64, maximumChangedFiles: 4, maximumMutationOperations: 6 },
+    limits: { maximumFileBytes: 16384, maximumListedFiles: 64, maximumChangedFiles: 4, maximumMutationOperations: 10 },
     ...overrides,
   };
 }
@@ -60,6 +60,7 @@ describe("workspace policy", () => {
     expect(() => admitWorkspacePolicy(rawPolicy({ writablePaths: ["other.zig"] }), { repository: "tkersey/fixture", baseRevision })).toThrow(/subset/);
     expect(() => admitWorkspacePolicy(rawPolicy({ readablePaths: ["../secret"] }), { repository: "tkersey/fixture", baseRevision })).toThrow(/normalized/);
     expect(() => admitWorkspacePolicy(rawPolicy({ check: { kind: "zig-build-check-v1", argv: ["test"] } }), { repository: "tkersey/fixture", baseRevision })).toThrow(/check mismatch/);
+    expect(() => admitWorkspacePolicy(rawPolicy({ limits: { ...rawPolicy().limits, maximumMutationOperations: 11 } }), { repository: "tkersey/fixture", baseRevision })).toThrow(/exceeds compiled maximum/);
   });
 });
 

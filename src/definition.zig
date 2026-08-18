@@ -248,7 +248,7 @@ pub const instructions =
 
 pub const Definition = agent.define(.{
     .name = "repository-steward",
-    .version = "1.0.2",
+    .version = "1.0.3",
     .instructions = instructions,
     .Goal = Goal,
     .Action = Action,
