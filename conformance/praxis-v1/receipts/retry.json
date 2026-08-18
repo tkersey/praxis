@@ -1,9 +1,9 @@
 {
   "praxis_format": 1,
   "mode": "retry",
-  "candidate_commit": "0157192f718a0250569dc8344e6f55e9765debae",
-  "application_id": "4dae2709193ade2593421e44bbb0252745abe0a81cdee766e2b1a608c2569972",
-  "application_wasm_sha256": "4d272318c75d8a6d57f85c1211cc6c7538ba0a94fa75566ee2485a910818d4cf",
+  "candidate_commit": "191c1e4faa185da25d4c891240d213058bbaca86",
+  "application_id": "7e7b7b7bbdc80743b1abf2142becd3ee62e16aeee95e8ad5c90771393d8bf30e",
+  "application_wasm_sha256": "e8848d7ac78fd565f5aa448c59033fdf5343ee2bcb05a2959f0cad9dc6a456d7",
   "deterministic_retry": true,
   "retry_capability_invocations": 1,
   "retry_content_writes": 1,
