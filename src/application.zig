@@ -24,7 +24,7 @@ fn maximumResultBytes(comptime Site: type) u32 {
 
 pub const Application = world.application(.{
     .name = "repository-steward",
-    .version = "1.0.2",
+    .version = "1.0.3",
     .root = Compiled.Machine,
     .handlers = .{},
     .external = .{

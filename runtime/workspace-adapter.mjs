@@ -17,7 +17,7 @@ const maximumExcerptBytes = 512;
 const testOutputBytes = 16 * 1024;
 const testTimeoutMs = 600_000;
 const exactCheck = Object.freeze({ kind: "zig-build-check-v1", argv: ["build", "check", "--summary", "all"] });
-const compiledLimits = Object.freeze({ maximumFileBytes: 16 * 1024, maximumListedFiles: 64, maximumChangedFiles: 4, maximumMutationOperations: 6 });
+const compiledLimits = Object.freeze({ maximumFileBytes: 16 * 1024, maximumListedFiles: 64, maximumChangedFiles: 4, maximumMutationOperations: 10 });
 
 function exactObject(value, keys, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError(`${label} must be an object`);
