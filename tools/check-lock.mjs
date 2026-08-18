@@ -7,7 +7,7 @@ const exactTuple = {
   agent: "2.5.0",
   boundary: "1.5.0",
   world: "3.1.3",
-  worldHost: "1.0.1",
+  worldHost: "1.0.2",
   worldCapabilities: "2.3.2",
   zig: "0.16.0",
   machineAbi: 2,
@@ -37,9 +37,9 @@ const exactArchives = {
     root: "world-3.1.3",
   },
   worldHost: {
-    url: "https://github.com/tkersey/world-host/releases/download/v1.0.1/world-host-v1.0.1-runtime.tar.gz",
-    sha256: "e501ab1fe540ed2ee5cbd1db5a027f00271f95694747160fe36fa64cffaab52d",
-    root: "world-host-v1.0.1-runtime",
+    url: "https://github.com/tkersey/world-host/releases/download/v1.0.2/world-host-v1.0.2-runtime.tar.gz",
+    sha256: "c9cc82ad90c5571cb998fb03ced20c76ae8aa864e7c9bf2626e6da561389a05f",
+    root: "world-host-v1.0.2-runtime",
   },
   worldCapabilities: {
     url: "https://github.com/tkersey/world-capabilities/releases/download/v2.3.2/world-capabilities-v2.3.2-deterministic.tar.gz",

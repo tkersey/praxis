@@ -91,13 +91,14 @@ export async function runDeterministic(rawOptions = {}) {
     worldCapabilitiesRoot: path.join(stackRoot, "worldCapabilities/world-capabilities-v2.3.2-deterministic"),
     bindingManifest, workspaceAdapter, modelAdapter: fixtureAdapter, modelBindingId: "praxis-fixture-model.v1",
   });
-  const host = await import(pathToFileURL(path.join(stackRoot, "worldHost/world-host-v1.0.1-runtime/src/v1/index.mjs")).href);
+  const host = await import(pathToFileURL(path.join(stackRoot, "worldHost/world-host-v1.0.2-runtime/src/v1/index.mjs")).href);
+  const admissionLimits = Object.freeze({ ...host.DEFAULT_ADMISSION_LIMITS, maximumFuelPerStep: 1_000_000n });
   const blockStore = new host.MemoryBlockStore(); const headStore = new host.MemoryBranchHeadStore();
   const effectJournal = new host.MemoryEffectJournalV1({ blockStore });
   let workerCount = 0;
   const controller = await host.RunControllerV1.create({
-    wasmBytes, blockStore, headStore, effectJournal,
-    workerFactory: () => { workerCount += 1; return new host.ApplicationWorker({ maximumMemoryBytes: 256 * 1024 * 1024 }); },
+    wasmBytes, blockStore, headStore, admissionLimits, effectJournal,
+    workerFactory: () => { workerCount += 1; return new host.ApplicationWorker({ admissionLimits, maximumMemoryBytes: 256 * 1024 * 1024 }); },
     preflight: async (manifest) => ({ blockers: Buffer.from(manifest.applicationId).toString("hex") === bindingManifest.applicationId ? [] : ["application_id_mismatch"] }),
     faultInjector: rawOptions.faultInjector ?? (async () => {}),
   });
