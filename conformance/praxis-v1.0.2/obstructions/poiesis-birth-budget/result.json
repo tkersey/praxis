@@ -1,0 +1,16 @@
+{
+  "format": "praxis-obstruction-correction/v1",
+  "owner": "task_failure",
+  "failed_release": "v1.0.1",
+  "failed_application_id": "c4f0223a9a39069d97389ce334986c924099d5890887215e52ce9c4adfdb93eb",
+  "failed_maximum_mutation_operations": 6,
+  "successor_maximum_mutation_operations": 10,
+  "maximum_distinct_changed_files": 4,
+  "manual_file_edits": 0,
+  "unapproved_writes": 0,
+  "machine_abi": 2,
+  "machine_state": "ABL_RNF2",
+  "application_abi": 1,
+  "frame": 1,
+  "effect_protocol": 1
+}

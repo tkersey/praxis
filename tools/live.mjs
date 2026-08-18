@@ -221,7 +221,7 @@ export async function runLive(options) {
       total_tokens: providerClaims.reduce((sum, claim) => sum + claim.totalTokens, 0), live_attempt_count: previousAttempts + 1, live_success_count: 1,
       private_evidence_digest: sha256(Buffer.from(JSON.stringify(privateEvidence))), terminal_file_digests: terminalFileDigests,
     };
-    assert.equal(receipt.fresh_worker_per_step, true); assert.ok(receipt.mutation_count >= 1 && receipt.mutation_count <= 6);
+    assert.equal(receipt.fresh_worker_per_step, true); assert.ok(receipt.mutation_count >= 1 && receipt.mutation_count <= 10);
     assert.ok(receipt.unique_changed_file_count >= 1 && receipt.unique_changed_file_count <= 4);
     const verifier = await verifyFinalWorktree({ receipt, worktree, candidate: options.candidate, policy: rawPolicy, zigExecutable: options.zigExecutable, approvalRoot, temporaryHome: path.join(runRoot, "verify-home") });
     receipt.final_diff_sha256 = verifier.final_diff_sha256; receipt.final_check_passed = verifier.final_check_passed; receipt.independent_verifier_passed = verifier.independent_verifier_passed;

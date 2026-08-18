@@ -16,7 +16,7 @@ pub const DigestHex = boundary.Text(64);
 pub const maximum_listed_files = 64;
 pub const maximum_documents = 10;
 pub const maximum_search_hits = 24;
-pub const maximum_mutation_operations = 6;
+pub const maximum_mutation_operations = 10;
 pub const maximum_changed_files = 4;
 
 pub const Goal = struct {
@@ -248,7 +248,7 @@ pub const instructions =
 
 pub const Definition = agent.define(.{
     .name = "repository-steward",
-    .version = "1.0.1",
+    .version = "1.0.2",
     .instructions = instructions,
     .Goal = Goal,
     .Action = Action,

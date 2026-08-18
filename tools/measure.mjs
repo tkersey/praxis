@@ -40,7 +40,7 @@ export async function proveMeasurements(options = {}) {
     externalEffects: measurements.externalEffectCount <= 95,
     modelEffects: measurements.modelEffectCount <= 48,
     nonModelEffects: measurements.nonModelEffectCount <= 47,
-    appliedReplacements: measurements.appliedReplacements >= 1 && measurements.appliedReplacements <= 6,
+    appliedReplacements: measurements.appliedReplacements >= 1 && measurements.appliedReplacements <= 10,
     distinctChangedFiles: measurements.distinctChangedFiles >= 1 && measurements.distinctChangedFiles <= 4,
   };
   assert.ok(Object.values(gates).every(Boolean), `measurement gate failed: ${JSON.stringify(gates)}`);

@@ -52,7 +52,7 @@ const expected = new Map([
   ["result_replace_conflict", { outcome: "conflict", value: { path: "src/main.zig", expected_sha256: repeated("a"), actual_sha256: repeated("c") } }],
 ]);
 
-const contractDigest = "4d50e2ac529f99d37b6e2e2a307e0948bb2b589a591123ffef45bc7870cd8822";
+const contractDigest = "dbf8a96184aea387b39f8dae0f4d7a51f0231e6a9788f550adeb9815fec2f0db";
 const baseTurn = (counters, context) => ({
   contract_digest: contractDigest,
   goal: { task: "Repair the admitted Zig fixture.", repository: "tkersey/fixture", base_revision: "0123456789abcdef0123456789abcdef01234567" },
