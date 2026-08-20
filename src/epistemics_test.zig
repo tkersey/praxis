@@ -422,3 +422,12 @@ test "compiled repository steward preserves semantic identity and machine envelo
     );
     try std.testing.expect(praxis.Compiled.Epistemics == praxis.Epistemics);
 }
+
+test "model-visible mutation budget follows the Machine capacity" {
+    const expected = std.fmt.comptimePrint(
+        "Use at most {d} applied replacements across at most four distinct files.",
+        .{praxis.maximum_mutation_operations},
+    );
+    try std.testing.expect(std.mem.indexOf(u8, praxis.instructions, expected) != null);
+    try std.testing.expect(std.mem.indexOf(u8, praxis.instructions, "Use at most six applied replacements") == null);
+}

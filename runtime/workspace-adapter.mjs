@@ -294,4 +294,4 @@ export async function recover(_context, effectRecord) {
   return effectRecord?.recordedResolution ? structuredClone(effectRecord.recordedResolution) : { status: "failed", payload: { reason: "recorded_resolution_required" } };
 }
 
-export const _workspaceInternals = { canonical, sha256Text, validatePathPrefix, readSnapshot, listRepository, searchRepository, spawnCheck };
+export const _workspaceInternals = { canonical, sha256Text, validatePathPrefix, readSnapshot, listRepository, searchRepository, spawnCheck, compiledLimits };

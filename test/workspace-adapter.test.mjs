@@ -8,6 +8,7 @@ import {
   preflight,
   replacementProposalDigest,
   resolve,
+  _workspaceInternals,
 } from "../runtime/workspace-adapter.mjs";
 
 const roots = [];
@@ -53,6 +54,14 @@ function request(operation, payload = {}) {
 }
 
 describe("workspace policy", () => {
+  test("model, Machine, and adapter expose one replacement ceiling", async () => {
+    const contract = JSON.parse(await readFile(new URL("../zig-out/repository-steward/repository-steward.decision-contract.json", import.meta.url), "utf8"));
+    const modelLimit = contract.instructions.match(/Use at most ([0-9]+) applied replacements across at most four distinct files\./);
+    expect(modelLimit).not.toBeNull();
+    expect(Number(modelLimit[1])).toBe(_workspaceInternals.compiledLimits.maximumMutationOperations);
+    expect(rawPolicy().limits.maximumMutationOperations).toBe(_workspaceInternals.compiledLimits.maximumMutationOperations);
+  });
+
   test("admits only exact sorted bounded policy", () => {
     const admitted = admitWorkspacePolicy(rawPolicy(), { repository: "tkersey/fixture", baseRevision });
     expect(admitted.digest).toMatch(/^[0-9a-f]{64}$/);
