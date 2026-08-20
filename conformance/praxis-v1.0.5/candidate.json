@@ -1,16 +1,16 @@
 {
   "format": "praxis-candidate/v1",
-  "praxisCommit": "c8288027d2ac8e2576d4c5950b71de0d1b0b6cc6",
+  "praxisCommit": "2f8e18dcd3cfeda45d25b0f9d93cccb03dff5f29",
   "applicationId": "0b3aa252522d95adda4d090600503b6b9c56b01519c0d07a493564830e8cac75",
   "applicationWasmSha256": "e79d46048bcad2f949a13bf99c6a885b86db379e84aa6ddf88fd713faced44d1",
   "decisionContractDigest": "822764fac3476f73666a2439422486d557bd4aaf0defcea76dade3c61cd1fc5e",
   "bindingManifestSha256": "9981b290ab6e0a94f594cca4eb96c170a2db188fb8ae9deaa79373594b72849b",
-  "workspaceAdapterSha256": "8434465b1ccb186bd7a4193d5a8094cc8cca98d237aa8d5e79885dee5d67ef55",
+  "workspaceAdapterSha256": "6e178bf1f9cfe31689e3f951656a2b47d79384764e4451bb6d64d6dba42db244",
   "openaiAdapterSha256": "dd0dca92a4fb04cb059ce6839689aa42ff8a8f6d84664407c59b5ef35b6f69ad",
   "codecsSha256": "5354e4e8c14248b7764d8d9431b73f95891f2ec4294afe097ea91b46caffe68c",
   "referenceStackLockSha256": "2faa97b6ea400bd5ede68ff0db1d5d463deec104253516251990dbc6cf254d12",
-  "deterministicReceiptSha256": "f0ee5eb41b704bcf7165de3b02161f25bf19f7388c882a80ad37b04fab01601f",
-  "retryReceiptSha256": "0f2e9bf8e0ed693d91c5060cdc3ac7bf73bf7b86109c30366b840d3d574b03b7",
-  "replayReceiptSha256": "70cd5b9c884a27098238feae147e6500bab5c0febe4367f5c77a344f53538804",
-  "measureReceiptSha256": "119dcd1cbb8b45c5390d1dfcd6e411230b01eeb22a0548a5c677a481c595088d"
+  "deterministicReceiptSha256": "007c7626311a21744443c5e13110a27ea2f668b6c71d3d6ff0934577b3f5e1c6",
+  "retryReceiptSha256": "f0cc32b6b43063d58b5ea93cde8c6fff44d8d5853eb704a13dd5acda6459a085",
+  "replayReceiptSha256": "1d457e356f468183d15833492d76c2e3e85801df297ad0a7bae17361d9615aff",
+  "measureReceiptSha256": "b81d82059b5e78e5a84da1e3cb2ab136fe9044370633a69048661be9c67f81c2"
 }
