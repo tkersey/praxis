@@ -230,8 +230,11 @@ async function replaceApproved(context, request) {
   const current = await readSnapshot(context, payload.path);
   const replacementBytes = Buffer.from(payload.replacement, "utf8");
   const replacementSha256 = sha256Bytes(replacementBytes);
-  await approve(context, request, replacementSha256);
   if (current.sha256 === replacementSha256) return { outcome: "applied", value: { path: payload.path, old_sha256: payload.expected_sha256, new_sha256: replacementSha256, already_applied: true, current } };
+  if ((context.mutationCount ?? 0) >= context.policy.limits.maximumMutationOperations) {
+    return { outcome: "denied", value: { path: payload.path, reason: "mutation_operation_limit_reached" } };
+  }
+  await approve(context, request, replacementSha256);
   if (current.sha256 !== payload.expected_sha256) return { outcome: "conflict", value: { path: payload.path, expected_sha256: payload.expected_sha256, actual_sha256: current.sha256 } };
   const temporary = join(dirname(admitted.full), `.praxis-${randomBytes(12).toString("hex")}.tmp`);
   try {
