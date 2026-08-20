@@ -230,7 +230,10 @@ async function replaceApproved(context, request) {
   const current = await readSnapshot(context, payload.path);
   const replacementBytes = Buffer.from(payload.replacement, "utf8");
   const replacementSha256 = sha256Bytes(replacementBytes);
-  if (current.sha256 === replacementSha256) return { outcome: "applied", value: { path: payload.path, old_sha256: payload.expected_sha256, new_sha256: replacementSha256, already_applied: true, current } };
+  if (current.sha256 === replacementSha256) {
+    await approve(context, request, replacementSha256);
+    return { outcome: "applied", value: { path: payload.path, old_sha256: payload.expected_sha256, new_sha256: replacementSha256, already_applied: true, current } };
+  }
   if ((context.mutationCount ?? 0) >= context.policy.limits.maximumMutationOperations) {
     return { outcome: "denied", value: { path: payload.path, reason: "mutation_operation_limit_reached" } };
   }

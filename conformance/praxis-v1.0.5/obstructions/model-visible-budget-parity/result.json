@@ -11,6 +11,7 @@
   "receiver_policy_may_narrow": true,
   "receiver_limit_enforced_before_approval": true,
   "idempotent_result_permitted_at_receiver_limit": true,
+  "idempotent_result_requires_request_bound_approval": true,
   "maximum_changed_files": 4,
   "machine_abi": 2,
   "application_abi": 1,

@@ -119,6 +119,23 @@ describe("workspace adapter", () => {
     expect(JSON.parse(await readFile(join(context.approvalRoot, `${effect.requestId}.json`), "utf8"))).toEqual(approval);
   });
 
+  test("fresh already-applied request still requires request-bound approval", async () => {
+    const { context } = await fixture(1);
+    const payload = {
+      path: "src/main.zig",
+      expected_sha256: digest("const value = 0;\n"),
+      replacement: "const value = 0;\n",
+      rationale: "Confirm existing bytes.",
+    };
+    const effect = request("replace", payload, "4".repeat(64));
+    const result = await resolve(context, effect);
+    expect(result.payload.value.already_applied).toBe(true);
+    expect(context.mutationCount ?? 0).toBe(0);
+    expect(context.approvalBindings).toHaveLength(1);
+    const approval = JSON.parse(await readFile(join(context.approvalRoot, `${effect.requestId}.json`), "utf8"));
+    expect(approval.proposalDigest).toBe(replacementProposalDigest(context, effect));
+  });
+
   test("receiver mutation ceiling denies a new write before approval but permits idempotent replay", async () => {
     const { root, context } = await fixture(1);
     const firstPayload = { path: "src/main.zig", expected_sha256: digest("const value = 0;\n"), replacement: "const value = 1;\n", rationale: "Correct value." };
