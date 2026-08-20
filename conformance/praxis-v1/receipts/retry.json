@@ -1,7 +1,7 @@
 {
   "praxis_format": 1,
   "mode": "retry",
-  "candidate_commit": "ddeda3aa6d51c98e7b83bb1e14d43a85e3b609bf",
+  "candidate_commit": "e427e7d83bc4851ab659317d9a0481b52589832f",
   "application_id": "0b3aa252522d95adda4d090600503b6b9c56b01519c0d07a493564830e8cac75",
   "application_wasm_sha256": "e79d46048bcad2f949a13bf99c6a885b86db379e84aa6ddf88fd713faced44d1",
   "deterministic_retry": true,

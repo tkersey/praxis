@@ -1,13 +1,13 @@
 {
   "praxis_format": 1,
   "mode": "deterministic",
-  "candidate_commit": "ddeda3aa6d51c98e7b83bb1e14d43a85e3b609bf",
+  "candidate_commit": "e427e7d83bc4851ab659317d9a0481b52589832f",
   "application_id": "0b3aa252522d95adda4d090600503b6b9c56b01519c0d07a493564830e8cac75",
   "application_wasm_sha256": "e79d46048bcad2f949a13bf99c6a885b86db379e84aa6ddf88fd713faced44d1",
   "policy_digest": "365c33e947cc0a3eb9cc0253649fabe15adde32737cdabca2f58cd6b1250d8af",
   "base_revision": "6514479d6c63b4d6f0b4b5aa2c9c58d3f60af4a3",
   "genesis_frame_id": "2bb2a0a855cdbb9a6c7024233f699f3f8776b07ac2290f3cd13fe32bc5da8d7c",
-  "terminal_frame_id": "b4a08545b18bbb0ed360f8c6b9f1f16d0c1060eb7415c846add0da32efd90749",
+  "terminal_frame_id": "17387516a85a481052bce2548b6bb2f23fda354a7f07b0ac0799831b9b7f5241",
   "ordered_interfaces": [
     "model.decide.v1",
     "repo.list.v2",
@@ -40,16 +40,16 @@
   ],
   "approval_bindings": [
     {
-      "request_id": "52099741525719daa2ac005cdcf44ec60db7040b75cfa9f0be0044adec873c01",
-      "proposal_digest": "e805435ca421497e73528f33d4e8c5e2a37b63bfc27d158ebebee4555d318701",
+      "request_id": "87dd37bc95a2a599b60b3e277e5b82fa503926e47168b4591a6d81e29ab1bd62",
+      "proposal_digest": "49d4efe308afe33b657ebe8c4bcf17da1a7f6b4ee1821bbf99836d73fd9ccc92",
       "path": "src/range.zig",
       "expected_sha256": "eb2861e93f3cc0626c2a0e154d7914bb1dfa0b82b92303fb10c3c24144a6f81a",
       "replacement_sha256": "cc1c87cdbdb47bbda911b86d4b9de7bc4a9bd466b869ac6cfdad3c46433c8da4",
       "policy_digest": "365c33e947cc0a3eb9cc0253649fabe15adde32737cdabca2f58cd6b1250d8af"
     },
     {
-      "request_id": "427d8d8869594d0e24527dc975b5c138d7d24725c34adea9744d0aac6a5f35bf",
-      "proposal_digest": "19c2695200e911bbc76c78ca81ab1bd6000af3a3291fa101fb975f9fca0323c7",
+      "request_id": "8c77e1aba500a2a577940d1c015eedd808fb3c4d61eaddadd0b9219eab964d29",
+      "proposal_digest": "b104b46983945fa175072c69b5937417d6e771e50908b4994407f7effa88da86",
       "path": "test/range_test.zig",
       "expected_sha256": "b03579cdc1615b1180ff6b2f51dc2b6f123b2056e7a3083f244aaf988f526661",
       "replacement_sha256": "13488bf6bba9590aa167507e661064ee8d8521e34e34860d133fa23c770f324a",
