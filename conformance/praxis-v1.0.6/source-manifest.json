@@ -363,7 +363,7 @@
     {
       "path": "tools/build-release.mjs",
       "mode": "100644",
-      "sha256": "b25854bb41730384ebfec891649220870955e31f9fc5bc8dc9c64530856e5bfd"
+      "sha256": "6042d209828f3eeca4e8db47befcbafef17511b5612fc10a109d88017ac4e8fb"
     },
     {
       "path": "tools/candidate.mjs",

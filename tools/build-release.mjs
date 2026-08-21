@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { verifyCandidate } from "./candidate.mjs";
@@ -19,16 +19,12 @@ const prefix = releasePrefix;
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 function command(executable, args, options = {}) {
-  const result = spawnSync(executable, args, { cwd: options.cwd ?? repositoryRoot, encoding: options.binary ? null : "utf8", maxBuffer: 128 * 1024 * 1024, env: options.env ?? process.env });
+  const result = spawnSync(executable, args, { cwd: options.cwd ?? repositoryRoot, encoding: options.binary ? null : "utf8", maxBuffer: 128 * 1024 * 1024, env: options.env ?? process.env, input: options.input });
   if (result.error || result.status !== 0) throw new Error(`${executable} ${args.join(" ")} failed\n${result.error ?? ""}${result.stdout ?? ""}${result.stderr ?? ""}`);
   return result;
 }
 
 async function copy(relative, destination) { const target = path.join(destination, relative); await mkdir(path.dirname(target), { recursive: true }); await cp(path.join(repositoryRoot, relative), target, { recursive: true }); }
-
-async function tarDirectory(source, target) {
-  command("tar", ["-czf", target, "--no-xattrs", "--no-mac-metadata", "-C", source, "."]);
-}
 
 function tarOctal(value, width) {
   const encoded = value.toString(8);
@@ -36,8 +32,19 @@ function tarOctal(value, width) {
   return `${encoded.padStart(width - 1, "0")}\0`;
 }
 
-function appendTarFile(archive, name, contents) {
-  if (!Buffer.isBuffer(archive) || !Buffer.isBuffer(contents) || !/^[ -~]+$/.test(name) || Buffer.byteLength(name) > 100) throw new Error("deterministic USTAR entry is invalid");
+function splitTarPath(name) {
+  if (!/^[ -~]+$/.test(name) || Buffer.byteLength(name) > 256) throw new Error("deterministic USTAR path is invalid");
+  if (Buffer.byteLength(name) <= 100) return { name, prefix: "" };
+  for (let separator = name.lastIndexOf("/"); separator > 0; separator = name.lastIndexOf("/", separator - 1)) {
+    const prefix = name.slice(0, separator); const suffix = name.slice(separator + 1);
+    if (Buffer.byteLength(prefix) <= 155 && Buffer.byteLength(suffix) <= 100) return { name: suffix, prefix };
+  }
+  throw new Error("deterministic USTAR path cannot be represented");
+}
+
+function appendTarFile(archive, name, contents, mode = 0o644) {
+  const tarPath = splitTarPath(name);
+  if (!Buffer.isBuffer(archive) || !Buffer.isBuffer(contents) || ![0o644, 0o755].includes(mode)) throw new Error("deterministic USTAR entry is invalid");
   let offset = 0;
   while (offset + 512 <= archive.length) {
     const header = archive.subarray(offset, offset + 512);
@@ -49,8 +56,8 @@ function appendTarFile(archive, name, contents) {
     offset += 512 + Math.ceil(size / 512) * 512;
   }
   const header = Buffer.alloc(512);
-  header.write(name, 0, 100, "ascii");
-  header.write(tarOctal(0o644, 8), 100, 8, "ascii");
+  header.write(tarPath.name, 0, 100, "ascii");
+  header.write(tarOctal(mode, 8), 100, 8, "ascii");
   header.write(tarOctal(0, 8), 108, 8, "ascii");
   header.write(tarOctal(0, 8), 116, 8, "ascii");
   header.write(tarOctal(contents.length, 12), 124, 12, "ascii");
@@ -59,10 +66,36 @@ function appendTarFile(archive, name, contents) {
   header[156] = 0x30;
   header.write("ustar\0", 257, 6, "ascii");
   header.write("00", 263, 2, "ascii");
+  header.write(tarPath.prefix, 345, 155, "ascii");
   const checksum = header.reduce((sum, byte) => sum + byte, 0);
   header.write(`${checksum.toString(8).padStart(6, "0")}\0 `, 148, 8, "ascii");
   const padding = Buffer.alloc((512 - (contents.length % 512)) % 512);
   return Buffer.concat([archive.subarray(0, offset), header, contents, padding, Buffer.alloc(1024)]);
+}
+
+async function deterministicDirectoryFiles(root, relative = "") {
+  const directory = path.join(root, ...relative.split("/").filter(Boolean));
+  const entries = (await readdir(directory, { withFileTypes: true })).sort((left, right) => Buffer.from(left.name).compare(Buffer.from(right.name)));
+  const files = [];
+  for (const entry of entries) {
+    const child = relative === "" ? entry.name : `${relative}/${entry.name}`;
+    if (entry.isDirectory()) files.push(...await deterministicDirectoryFiles(root, child));
+    else if (entry.isFile() && !entry.isSymbolicLink()) files.push(child);
+    else throw new Error(`release archive entry is not an ordinary file: ${child}`);
+  }
+  return files;
+}
+
+async function tarDirectory(root, target) {
+  let archive = Buffer.alloc(1024);
+  const prefix = path.basename(root);
+  for (const relative of await deterministicDirectoryFiles(root)) {
+    const absolute = path.join(root, ...relative.split("/"));
+    const mode = ((await stat(absolute)).mode & 0o111) === 0 ? 0o644 : 0o755;
+    archive = appendTarFile(archive, `${prefix}/${relative}`, await readFile(absolute), mode);
+  }
+  const compressed = command("gzip", ["-n", "-c"], { binary: true, input: archive }).stdout;
+  await writeFile(target, compressed);
 }
 
 export const _releaseInternals = Object.freeze({ appendTarFile });
@@ -83,14 +116,14 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
     await writeFile(sourceArchive, compressedSource);
     const runtimeRoot = path.join(temporary, "runtime", `praxis-${releaseVersion}-runtime`);
     for (const relative of ["runtime", "tools", "src/emit_initial_args.zig", "build.zig", "build.zig.zon", "package.json", "README.md", "LICENSE", "conformance/praxis-v1/reference-stack.lock.json"]) await copy(relative, runtimeRoot);
-    const runtimeArchive = path.join(outputRoot, `${prefix}-runtime.tar.gz`); await tarDirectory(path.dirname(runtimeRoot), runtimeArchive);
+    const runtimeArchive = path.join(outputRoot, `${prefix}-runtime.tar.gz`); await tarDirectory(runtimeRoot, runtimeArchive);
     const artifactRoot = path.join(temporary, "artifacts", `praxis-${releaseVersion}-artifacts`);
     await copy("zig-out/repository-steward", artifactRoot); await copy("zig-out/bin/praxis-initial-args", artifactRoot);
     await copy("fixtures/zig-repository-v1", artifactRoot);
     for (const name of ["deterministic", "retry", "replay", "measure"]) await copy(`conformance/praxis-v1/receipts/${name}.json`, artifactRoot);
     await cp(versionedCandidatePath, path.join(artifactRoot, "candidate.json"));
     await copy(versionedConformanceRelative, artifactRoot);
-    const artifactArchive = path.join(outputRoot, `${prefix}-artifacts.tar.gz`); await tarDirectory(path.dirname(artifactRoot), artifactArchive);
+    const artifactArchive = path.join(outputRoot, `${prefix}-artifacts.tar.gz`); await tarDirectory(artifactRoot, artifactArchive);
     await cp(versionedCandidatePath, path.join(outputRoot, `${prefix}-candidate.json`));
     const successorReceipt = {
       format: successorReleaseFormat,
