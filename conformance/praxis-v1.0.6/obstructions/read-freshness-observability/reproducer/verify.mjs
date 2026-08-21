@@ -18,6 +18,23 @@ const git = (args) => {
   return child.stdout;
 };
 const result = JSON.parse(await readFile(new URL("../result.json", import.meta.url), "utf8"));
+const resultKeys = [
+  "format", "owner", "failed_release", "failed_release_tag_commit",
+  "failed_definition_blob_oid", "failed_epistemics_blob_oid", "failed_codec_blob_oid",
+  "failed_candidate_blob_oid", "failed_decision_contract_digest",
+  "failed_instruction_requires_fresh_read", "failed_decision_view_exposes_read_epoch",
+  "successor_read_evidence_typed", "successor_read_evidence_contains_path",
+  "successor_read_evidence_contains_observed_test_count",
+  "successor_changed_path_revision_requires_current_read_evidence",
+  "successor_new_check_stales_prior_read_evidence",
+  "successor_conflict_invalidates_read_evidence",
+  "successor_conflict_invalidates_test_evidence",
+  "successor_model_instructions_name_read_evidence",
+  "successor_implementation_semantic_identity", "successor_application_id",
+  "successor_decision_contract_digest", "maximum_replacements", "maximum_changed_files",
+  "machine_abi", "machine_state", "application_abi", "frame", "effect_protocol",
+].sort();
+assert.deepEqual(Object.keys(result).sort(), resultKeys);
 const contract = JSON.parse(await readFile(new URL("../../../../../zig-out/repository-steward/repository-steward.decision-contract.json", import.meta.url), "utf8"));
 const binding = JSON.parse(await readFile(new URL("../../../../../zig-out/repository-steward/repository-steward.binding-manifest.json", import.meta.url), "utf8"));
 const vectors = JSON.parse(await readFile(new URL("../../../../../zig-out/repository-steward/repository-steward.codec-vectors.json", import.meta.url), "utf8"));
@@ -32,6 +49,7 @@ const decision = (name) => {
 };
 
 assert.equal(result.owner, "parent_application_obstruction");
+assert.equal(result.format, "praxis-obstruction-correction/v1");
 assert.equal(result.failed_release, "v1.0.5");
 assert.equal(git(["rev-parse", "v1.0.5^{}"]).trim(), result.failed_release_tag_commit);
 for (const [path, field] of [
@@ -53,10 +71,13 @@ assert.doesNotMatch(failedCodec, /ReadEvidence|conflict_count|conflicted_path/);
 assert.equal(result.failed_instruction_requires_fresh_read, true);
 assert.equal(result.failed_decision_view_exposes_read_epoch, false);
 assert.equal(result.successor_read_evidence_typed, true);
+assert.equal(result.successor_read_evidence_contains_path, true);
+assert.equal(result.successor_read_evidence_contains_observed_test_count, true);
 assert.equal(result.successor_changed_path_revision_requires_current_read_evidence, true);
 assert.equal(result.successor_new_check_stales_prior_read_evidence, true);
 assert.equal(result.successor_conflict_invalidates_read_evidence, true);
 assert.equal(result.successor_conflict_invalidates_test_evidence, true);
+assert.equal(result.successor_model_instructions_name_read_evidence, true);
 assert.equal(result.successor_application_id, binding.applicationId);
 assert.equal(result.successor_decision_contract_digest, contract.semanticDigest);
 assert.match(contract.instructions, /latest read path and its observed test and conflict counts/);

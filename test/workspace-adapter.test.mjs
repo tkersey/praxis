@@ -63,7 +63,8 @@ describe("workspace policy", () => {
     expect(releaseCandidatePath).toEndWith("/conformance/praxis-v1.0.6/candidate.json");
     expect(defaultCandidatePath).toBe(releaseCandidatePath);
     expect(successorReleaseFormat).toBe("praxis-successor-artifact-release/v1");
-    expect(protectedCandidatePaths).toContain("conformance/praxis-v1.0.6/obstructions/read-freshness-observability");
+    expect(protectedCandidatePaths).toContain("conformance/praxis-v1.0.6");
+    expect(protectedCandidatePaths).toContain(":(exclude)conformance/praxis-v1.0.6/candidate.json");
   });
 
   test("candidate admission rejects unknown release claims", async () => {

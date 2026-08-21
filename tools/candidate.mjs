@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { releaseVersion, versionedCandidatePath } from "./release-identity.mjs";
+import { releaseVersion, versionedCandidatePath, versionedConformanceRelative } from "./release-identity.mjs";
 
 export const defaultCandidatePath = versionedCandidatePath;
 
@@ -11,11 +11,12 @@ const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const conformanceRoot = path.join(repositoryRoot, "conformance/praxis-v1");
 const artifactsRoot = path.join(repositoryRoot, "zig-out/repository-steward");
 export const protectedCandidatePaths = Object.freeze([
-  ".gitattributes", "build.zig", "build.zig.zon", "src", "runtime", "fixtures", "test",
+  ".gitattributes", ".github", "build.zig", "build.zig.zon", "src", "runtime", "fixtures", "test",
   "tools", "package.json", "conformance/praxis-v1/reference-stack.lock.json",
   "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/README.md",
   "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/result.json",
-  "conformance/praxis-v1.0.6/obstructions/read-freshness-observability",
+  versionedConformanceRelative,
+  `:(exclude)${versionedConformanceRelative}/candidate.json`,
 ]);
 
 function git(args, { allowFailure = false } = {}) {
@@ -60,9 +61,11 @@ export async function candidateInputs() {
   ]);
   const proofCommit = deterministic.candidate_commit;
   assert.equal(binding.applicationVersion, releaseVersion, "binding application version differs from package release version");
+  const applicationWasmSha256 = await digestFile(path.join(artifactsRoot, "repository-steward.world.wasm"));
   for (const receipt of [deterministic, retry, replay, measure]) {
     if (!/^[0-9a-f]{40}$/.test(receipt.candidate_commit)) throw new Error(`${receipt.mode} receipt candidate is invalid`);
     if (receipt.application_id !== binding.applicationId) throw new Error(`${receipt.mode} application identity mismatch`);
+    if (receipt.application_wasm_sha256 !== applicationWasmSha256) throw new Error(`${receipt.mode} application WASM identity mismatch`);
   }
   for (const receipt of [retry, replay, measure]) {
     const diff = git(["diff", "--quiet", receipt.candidate_commit, "HEAD", "--", ...protectedCandidatePaths], { allowFailure: true });
@@ -97,6 +100,7 @@ export async function freezeCandidate({ output = defaultCandidatePath } = {}) {
     replayReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/replay.json")),
     measureReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/measure.json")),
   };
+  await fsp.mkdir(path.dirname(output), { recursive: true });
   await fsp.writeFile(output, `${JSON.stringify(candidate, null, 2)}\n`, { flag: "wx" });
   return candidate;
 }
