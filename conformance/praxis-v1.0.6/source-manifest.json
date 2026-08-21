@@ -98,7 +98,7 @@
     {
       "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/README.md",
       "mode": "100644",
-      "sha256": "6f9985acb0273d8d23939f2aefd99514deb7555c69f8117e6773ed91c95ed794"
+      "sha256": "c81b20555295ea7adadee32e05aa5618bf0dd80e3844b67f3596d48dfd6612cb"
     },
     {
       "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/reproducer/failed-v1.0.5/candidate.json",
@@ -123,7 +123,7 @@
     {
       "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/reproducer/verify.mjs",
       "mode": "100644",
-      "sha256": "ea765c3ca824e3beba2aead90550a79d81d4251f9c70dacf7ac947907a6748d2"
+      "sha256": "df198f60ebb47ba724a677bfbc9a40e30b569d21b4a3ba3abc4d2259000fe8a0"
     },
     {
       "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/result.json",
@@ -363,7 +363,7 @@
     {
       "path": "tools/build-release.mjs",
       "mode": "100644",
-      "sha256": "3154466cf361bf0f88d57fbf6e87c3658b8f812b73b7e7dc7e388bd6aea5e625"
+      "sha256": "3b5ff0c77ae807912f21665f47d756f021d9de7c175aadb64ce7e8eedcac67ae"
     },
     {
       "path": "tools/candidate.mjs",

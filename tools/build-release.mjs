@@ -19,7 +19,7 @@ const prefix = releasePrefix;
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 function command(executable, args, options = {}) {
-  const result = spawnSync(executable, args, { cwd: options.cwd ?? repositoryRoot, encoding: options.binary ? null : "utf8", maxBuffer: 128 * 1024 * 1024 });
+  const result = spawnSync(executable, args, { cwd: options.cwd ?? repositoryRoot, encoding: options.binary ? null : "utf8", maxBuffer: 128 * 1024 * 1024, env: options.env ?? process.env });
   if (result.error || result.status !== 0) throw new Error(`${executable} ${args.join(" ")} failed\n${result.error ?? ""}${result.stdout ?? ""}${result.stderr ?? ""}`);
   return result;
 }
@@ -32,6 +32,7 @@ async function tarDirectory(source, target) {
 
 export async function buildRelease({ outputRoot = path.join(repositoryRoot, "release") } = {}) {
   if (command("git", ["status", "--porcelain=v1", "--untracked-files=all"]).stdout !== "") throw new Error("successor release build requires a clean worktree");
+  command(process.execPath, ["tools/check-corrections.mjs"], { env: { ...process.env, PRAXIS_REQUIRE_HISTORICAL_GIT: "1" } });
   const candidate = await verifyCandidate(versionedCandidatePath);
   await mkdir(outputRoot, { recursive: true });
   const temporary = await mkdtemp(path.join(tmpdir(), "praxis-release-"));
