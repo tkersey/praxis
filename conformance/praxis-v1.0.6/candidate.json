@@ -1,16 +1,16 @@
 {
   "format": "praxis-candidate/v1",
-  "praxisCommit": "f751b99146cab88870d05cd2308f5dd83e432ccf",
-  "applicationId": "cbc39c24cd93cb09f4d3549fff3f63bb392e0e8eff07835d6bb0bd61e916f1b2",
-  "applicationWasmSha256": "a400049817b13922d82c66432e38a5ba5b14a6b9514b586f1c1ed7f091f9e915",
-  "decisionContractDigest": "31043a38d56e7da441546e509be84ba7fdc7fc79513de3d3de7701874024a5d7",
-  "bindingManifestSha256": "7196b8b40ed81dfac119bb216bc8c76379c8a3561a48df9fc7a36680f2d5a179",
+  "praxisCommit": "f66c4e7e17c176a03414711b93db39ae4499e880",
+  "applicationId": "e55755adf5d3c9a492b9f54d53c7946e9d8103a05d20e429dbb5d18e0cc09909",
+  "applicationWasmSha256": "6ee6953e67a33f7e7177e90ba73e8bb66e9e7a2ddcf8fdfbada8b3fe01b3ac7d",
+  "decisionContractDigest": "837d54cdc23ea97ae337ec0433ba638fefc3eed76687f949d29282a79cea0246",
+  "bindingManifestSha256": "abb052673b000d0d3fc29a8f1b95917cea26cf91613f8c879a9bde6e6d4aa96d",
   "workspaceAdapterSha256": "527930ea1e7b997b2f761e5ca4e082b600dc786d7fb458bb3c9011eed0e3d7e4",
   "openaiAdapterSha256": "dd0dca92a4fb04cb059ce6839689aa42ff8a8f6d84664407c59b5ef35b6f69ad",
-  "codecsSha256": "8c63e0533876674d23dcc8dfd21f1a260227073e2b10065cd992c43322881e23",
+  "codecsSha256": "a7ed6daaafb58b7a0a6d421a1483efb9bc0fef86508b8a59282148340c25e197",
   "referenceStackLockSha256": "2faa97b6ea400bd5ede68ff0db1d5d463deec104253516251990dbc6cf254d12",
-  "deterministicReceiptSha256": "dfbb53a4e6e6ea4096f15947047f9de4e735c818e0927bdbbe4fe7ae4b7daaf0",
-  "retryReceiptSha256": "e7d80b6919973aa137a76b9925774323c035d7203d6e6ba3ac83e8fcac5f65fd",
-  "replayReceiptSha256": "7fcb0b7f8e485e4808db06b3f4cd0023724df18b7cbc0897889c38d1f4ef55e4",
-  "measureReceiptSha256": "3aba1889610f549e56d8f48f4866c3516a952630de594b140a3e9cda9c5c34dc"
+  "deterministicReceiptSha256": "804b750008fe4375c0f7a43b5bddcb1f948f335b95bd2822a372902196eca082",
+  "retryReceiptSha256": "e47f3a2693c005e9ba35a7043aa858dca4b40c472b6c7d74d73b517f80baf746",
+  "replayReceiptSha256": "24e90339f945c160d407986532c9cb8d35ebcf915c3c7dcd0e7b96a32a0fc92a",
+  "measureReceiptSha256": "151f5ea8a57540a7e004a055d5bcd05db9d3cfca7aaee32b0a2f382d6c264285"
 }
