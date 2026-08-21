@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import {
   admitWorkspacePolicy,
   preflight,
@@ -12,6 +13,8 @@ import {
 } from "../runtime/workspace-adapter.mjs";
 import { releaseCandidatePath, releaseVersion, successorReleaseFormat } from "../tools/build-release.mjs";
 import { assertCandidateShape, defaultCandidatePath, protectedCandidatePaths } from "../tools/candidate.mjs";
+import { correctionVerifierPaths } from "../tools/check-corrections.mjs";
+import { sourceCommitAt } from "../tools/release-identity.mjs";
 
 const roots = [];
 afterEach(async () => { while (roots.length > 0) await rm(roots.pop(), { recursive: true, force: true }); });
@@ -58,6 +61,28 @@ function request(operation, payload = {}, requestId = "1".repeat(64)) {
 }
 
 describe("workspace policy", () => {
+  test("source identity rejects an enclosing Git repository", async () => {
+    const parent = await mkdtemp(join(tmpdir(), "praxis-source-parent-")); roots.push(parent);
+    await writeFile(join(parent, "parent.txt"), "parent\n");
+    expect(spawnSync("git", ["init", "-q"], { cwd: parent }).status).toBe(0);
+    expect(spawnSync("git", ["add", "parent.txt"], { cwd: parent }).status).toBe(0);
+    expect(spawnSync("git", ["-c", "user.name=Praxis Test", "-c", "user.email=praxis@example.invalid", "commit", "-qm", "parent"], { cwd: parent }).status).toBe(0);
+    const nested = join(parent, "exported-praxis");
+    const candidatePath = join(nested, "candidate.json");
+    await mkdir(nested);
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision })}\n`);
+    expect(await sourceCommitAt(nested, candidatePath)).toBe(baseRevision);
+  });
+
+  test("correction inventory rejects a missing verifier", async () => {
+    const root = await mkdtemp(join(tmpdir(), "praxis-corrections-")); roots.push(root);
+    await mkdir(join(root, "covered/reproducer"), { recursive: true });
+    await writeFile(join(root, "covered/reproducer/verify.mjs"), "export {};\n");
+    expect((await correctionVerifierPaths(root)).map(({ name }) => name)).toEqual(["covered"]);
+    await mkdir(join(root, "missing"));
+    await expect(correctionVerifierPaths(root)).rejects.toThrow(/correction verifier is missing: missing/);
+  });
+
   test("release builder derives the current package identity", () => {
     expect(releaseVersion).toBe("1.0.6");
     expect(releaseCandidatePath).toEndWith("/conformance/praxis-v1.0.6/candidate.json");

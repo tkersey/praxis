@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
@@ -14,10 +14,23 @@ export const versionedConformanceRoot = path.join(repositoryRoot, versionedConfo
 export const versionedCandidatePath = path.join(versionedConformanceRoot, "candidate.json");
 export const successorReleaseFormat = "praxis-successor-artifact-release/v1";
 
-export async function sourceCommit() {
-  const git = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" });
-  if (!git.error && git.status === 0 && /^[0-9a-f]{40}\n?$/.test(git.stdout)) return git.stdout.trim();
-  const candidate = JSON.parse(await readFile(versionedCandidatePath, "utf8"));
+export async function sourceCommitAt(root, candidatePath) {
+  const gitRoot = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: root, encoding: "utf8" });
+  if (!gitRoot.error && gitRoot.status === 0) {
+    const [resolvedRoot, resolvedGitRoot] = await Promise.all([
+      realpath(root),
+      realpath(gitRoot.stdout.trim()).catch(() => null),
+    ]);
+    if (resolvedGitRoot === resolvedRoot) {
+      const git = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" });
+      if (!git.error && git.status === 0 && /^[0-9a-f]{40}\n?$/.test(git.stdout)) return git.stdout.trim();
+    }
+  }
+  const candidate = JSON.parse(await readFile(candidatePath, "utf8"));
   if (candidate?.format !== "praxis-candidate/v1" || !/^[0-9a-f]{40}$/.test(candidate.praxisCommit)) throw new Error("source candidate commit is unavailable");
   return candidate.praxisCommit;
+}
+
+export async function sourceCommit() {
+  return sourceCommitAt(repositoryRoot, versionedCandidatePath);
 }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { decodeDecisionTurn } from "../../../../../runtime/codecs.mjs";
 import { _workspaceInternals } from "../../../../../runtime/workspace-adapter.mjs";
 
@@ -44,6 +44,14 @@ const failedEpistemicsBytes = await readFile(new URL("epistemics.zig", failedRoo
 const failedCodecBytes = await readFile(new URL("codecs.mjs", failedRoot));
 const failedCandidateBytes = await readFile(new URL("candidate.json", failedRoot));
 const gitBlobOid = (bytes) => createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const gitBlobAt = (commit, relative) => {
+  const child = spawnSync("git", ["rev-parse", `${commit}:${relative}`], { cwd: root, encoding: "utf8" });
+  if (child.error || child.status !== 0 || !/^[0-9a-f]{40}\n?$/.test(child.stdout)) {
+    throw new Error(`git object is unavailable: ${commit}:${relative}`);
+  }
+  return child.stdout.trim();
+};
 const decision = (name) => {
   const vector = vectors.vectors.find((candidate) => candidate.name === name);
   assert.ok(vector, `missing ${name}`);
@@ -61,7 +69,16 @@ const failedDefinition = failedDefinitionBytes.toString("utf8");
 const failedEpistemics = failedEpistemicsBytes.toString("utf8");
 const failedCodec = failedCodecBytes.toString("utf8");
 const failedCandidate = JSON.parse(failedCandidateBytes);
+assert.match(failedCandidate.praxisCommit, /^[0-9a-f]{40}$/);
+assert.equal(sha256(failedCodecBytes), failedCandidate.codecsSha256);
 assert.equal(failedCandidate.decisionContractDigest, result.failed_decision_contract_digest);
+const gitRoot = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: root, encoding: "utf8" });
+if (!gitRoot.error && gitRoot.status === 0 && await realpath(gitRoot.stdout.trim()).catch(() => null) === await realpath(root)) {
+  assert.equal(gitBlobAt(result.failed_release, "conformance/praxis-v1.0.5/candidate.json"), result.failed_candidate_blob_oid);
+  assert.equal(gitBlobAt(failedCandidate.praxisCommit, "src/definition.zig"), result.failed_definition_blob_oid);
+  assert.equal(gitBlobAt(failedCandidate.praxisCommit, "src/epistemics.zig"), result.failed_epistemics_blob_oid);
+  assert.equal(gitBlobAt(failedCandidate.praxisCommit, "runtime/codecs.mjs"), result.failed_codec_blob_oid);
+}
 assert.match(failedDefinition, /fresh check and a fresh read/);
 assert.doesNotMatch(failedDefinition.match(/pub const Memory = struct \{[\s\S]*?\n\};/)?.[0] ?? "", /latest_read|conflict_count|conflicted_path/);
 assert.doesNotMatch(failedDefinition.match(/pub const DecisionEvidence = struct \{[\s\S]*?\n\};/)?.[0] ?? "", /latest_read|conflict_count|conflicted_path/);
