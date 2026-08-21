@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { releaseVersion, versionedCandidatePath, versionedConformanceRelative } from "./release-identity.mjs";
+import { releaseVersion, sourceManifestPath, versionedCandidatePath, versionedConformanceRelative } from "./release-identity.mjs";
 
 export const defaultCandidatePath = versionedCandidatePath;
 
@@ -40,6 +40,7 @@ const candidateKeys = Object.freeze([
   "format", "praxisCommit", "applicationId", "applicationWasmSha256",
   "decisionContractDigest", "bindingManifestSha256", "workspaceAdapterSha256",
   "openaiAdapterSha256", "codecsSha256", "referenceStackLockSha256",
+  "sourceManifestSha256",
   "deterministicReceiptSha256", "retryReceiptSha256", "replayReceiptSha256",
   "measureReceiptSha256",
 ].sort());
@@ -95,6 +96,7 @@ export async function freezeCandidate({ output = defaultCandidatePath } = {}) {
     openaiAdapterSha256: await digestFile(path.join(repositoryRoot, "runtime/openai-adapter.mjs")),
     codecsSha256: await digestFile(path.join(repositoryRoot, "runtime/codecs.mjs")),
     referenceStackLockSha256: await digestFile(path.join(conformanceRoot, "reference-stack.lock.json")),
+    sourceManifestSha256: await digestFile(sourceManifestPath),
     deterministicReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/deterministic.json")),
     retryReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/retry.json")),
     replayReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/replay.json")),
@@ -117,6 +119,7 @@ export async function verifyCandidate(candidatePath) {
     openaiAdapterSha256: await digestFile(path.join(repositoryRoot, "runtime/openai-adapter.mjs")),
     codecsSha256: await digestFile(path.join(repositoryRoot, "runtime/codecs.mjs")),
     referenceStackLockSha256: await digestFile(path.join(conformanceRoot, "reference-stack.lock.json")),
+    sourceManifestSha256: await digestFile(sourceManifestPath),
     deterministicReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/deterministic.json")),
     retryReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/retry.json")),
     replayReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/replay.json")),

@@ -21,6 +21,7 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: zig version
+      - run: bun tools/source-manifest.mjs --verify
       - run: zig build -j1 check --summary all
         env:
           ZIG_LOCAL_CACHE_DIR: ${{ github.workspace }}/.zig-cache

@@ -2,7 +2,7 @@
   "type": "module",
   "scripts": {
     "check": "bun run check:reference-stack && bun run check:local && bun run check:corrections && bun run check:deterministic && bun run check:retry && bun run check:replay && bun run check:measure",
-    "check:local": "zig build check && bun tools/check-codecs.mjs && bun tools/check-packs.mjs && bun tools/check-artifacts.mjs && bun test test/runtime.test.mjs test/workspace-adapter.test.mjs test/bindings.test.mjs test/openai-adapter.test.mjs test/fixture-model-adapter.test.mjs test/live.test.mjs",
+    "check:local": "bun tools/source-manifest.mjs --verify && zig build check && bun tools/check-codecs.mjs && bun tools/check-packs.mjs && bun tools/check-artifacts.mjs && bun test test/runtime.test.mjs test/workspace-adapter.test.mjs test/bindings.test.mjs test/openai-adapter.test.mjs test/fixture-model-adapter.test.mjs test/live.test.mjs",
     "check:corrections": "bun tools/check-corrections.mjs",
     "check:lock": "bun tools/check-lock.mjs",
     "check:reference-stack": "bun tools/reference-stack.mjs",

@@ -1,0 +1,470 @@
+{
+  "format": "praxis-source-manifest/v1",
+  "entries": [
+    {
+      "path": ".gitattributes",
+      "mode": "100644",
+      "sha256": "a0e9668462eed158923bfb5750a39081c7ac2c99304c2c36ee49ada53252ebbe"
+    },
+    {
+      "path": ".github/workflows/check.yml",
+      "mode": "100644",
+      "sha256": "17a0a02b07dc2765b378640b337a79665d3b8b2806f56172cd5a316153c7fea4"
+    },
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "sha256": "9f6fd52175427dd3143778494f56f6b6c2e79378e9d392c21f2088223d5bbcf2"
+    },
+    {
+      "path": "LICENSE",
+      "mode": "100644",
+      "sha256": "f0a877bb381b63236b2794e47491a09784fb7b108adf7947bc10c1f998f52913"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "sha256": "bf59133d4296333db1d5e67963640dde1a176bab2159a6dafc13b41e7f352260"
+    },
+    {
+      "path": "build.zig",
+      "mode": "100644",
+      "sha256": "68741f32acfc125c76fc59f3247816a11eae3a50e0e15b07524dbb04f126eb34"
+    },
+    {
+      "path": "build.zig.zon",
+      "mode": "100644",
+      "sha256": "117afe25560853d5e48512ebe52176ed8a047e72a8a9173efbd2304802446fa2"
+    },
+    {
+      "path": "conformance/praxis-v1.0.1/candidate.json",
+      "mode": "100644",
+      "sha256": "55b4c7f603d2360109667ba024fad0d4b9baa893c3eb25da6c68fce1ff02f04e"
+    },
+    {
+      "path": "conformance/praxis-v1.0.1/obstructions/poiesis-replacement-fold/README.md",
+      "mode": "100644",
+      "sha256": "46253df47b042230b2588a4716127e2ce50e1f8b257e59324e460dd2fe667487"
+    },
+    {
+      "path": "conformance/praxis-v1.0.1/obstructions/poiesis-replacement-fold/result.json",
+      "mode": "100644",
+      "sha256": "3a16f4967ab73fa332ce064b854cf5e2f16b1b402699490275130d21d9060079"
+    },
+    {
+      "path": "conformance/praxis-v1.0.2/candidate.json",
+      "mode": "100644",
+      "sha256": "2fa4eab15fd4af070776bfccb214fbca98f3b26907a7b4936b5dbcb1043df395"
+    },
+    {
+      "path": "conformance/praxis-v1.0.2/obstructions/poiesis-birth-budget/README.md",
+      "mode": "100644",
+      "sha256": "4be7ae4555a828bcd6fc7f3e31910fb279a23d376dbce116e51f2fad8e0143c7"
+    },
+    {
+      "path": "conformance/praxis-v1.0.2/obstructions/poiesis-birth-budget/result.json",
+      "mode": "100644",
+      "sha256": "8070948417308b778fa73565a026cce4c79199eb030bc64d80a6a81be617c8d3"
+    },
+    {
+      "path": "conformance/praxis-v1.0.3/candidate.json",
+      "mode": "100644",
+      "sha256": "7cd7ddbb996dbb60272a9420e61373d74d3a75078f49c7b7e75025b48ad89225"
+    },
+    {
+      "path": "conformance/praxis-v1.0.3/obstructions/workspace-budget-parity/README.md",
+      "mode": "100644",
+      "sha256": "4e0c164e84ede62698f90f9b24d4972205982f1a21fc9ca25e02cf9f5bce0adc"
+    },
+    {
+      "path": "conformance/praxis-v1.0.3/obstructions/workspace-budget-parity/result.json",
+      "mode": "100644",
+      "sha256": "729a87b43ef643e9bab469731da48ef87c1c79c9271fe3ca272cfee894dda4d6"
+    },
+    {
+      "path": "conformance/praxis-v1.0.4/candidate.json",
+      "mode": "100644",
+      "sha256": "f68b4b9c8634ca52a61392216321fdee4fdb7b7c34f7af4f08458c5bc78789a5"
+    },
+    {
+      "path": "conformance/praxis-v1.0.4/obstructions/poiesis-machine-fuel/README.md",
+      "mode": "100644",
+      "sha256": "c4469b32c077cfafaa4eb1441b7811e7ffeb51f46598a084172a77563ef52132"
+    },
+    {
+      "path": "conformance/praxis-v1.0.4/obstructions/poiesis-machine-fuel/result.json",
+      "mode": "100644",
+      "sha256": "2ceaca548040961f77a51123dacc8744157592d0605d5c131606dfd5ed3a048c"
+    },
+    {
+      "path": "conformance/praxis-v1.0.5/candidate.json",
+      "mode": "100644",
+      "sha256": "cb2e2bad84631699bacedbd6805d8d9008f814b5f58cf9c8ef5cee59ce77645a"
+    },
+    {
+      "path": "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/README.md",
+      "mode": "100644",
+      "sha256": "8637b348e71b2de700ecaf25f173140550718911af45e31f493015f7aa23d675"
+    },
+    {
+      "path": "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/result.json",
+      "mode": "100644",
+      "sha256": "11e9845336e2320066f75b975bf91397e5e063c863b09bd02bcbc7063bf21358"
+    },
+    {
+      "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/README.md",
+      "mode": "100644",
+      "sha256": "fd748e63c8097ff55330ad4a8ddfb4246a39af1006983b54e78954a1a091a33c"
+    },
+    {
+      "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/reproducer/failed-v1.0.5/candidate.json",
+      "mode": "100644",
+      "sha256": "cb2e2bad84631699bacedbd6805d8d9008f814b5f58cf9c8ef5cee59ce77645a"
+    },
+    {
+      "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/reproducer/failed-v1.0.5/codecs.mjs",
+      "mode": "100644",
+      "sha256": "dd05bfd6a80818def9bc2b738ce6db41e03722e4006617205896fca00c794e4b"
+    },
+    {
+      "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/reproducer/failed-v1.0.5/definition.zig",
+      "mode": "100644",
+      "sha256": "61aa98c30dd3e7361bebcf8c0e63766c43bc41079a77e5380f5ab143f4a6d82b"
+    },
+    {
+      "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/reproducer/failed-v1.0.5/epistemics.zig",
+      "mode": "100644",
+      "sha256": "afcf1ba66b539bba806f0d1062ea493e3fc07dd056c8088ecd0f2defa65e3dac"
+    },
+    {
+      "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/reproducer/verify.mjs",
+      "mode": "100644",
+      "sha256": "918c0a26a8fbccaca4e6a27eac14848170a9feb351fae661f83b0403b6d20c95"
+    },
+    {
+      "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/result.json",
+      "mode": "100644",
+      "sha256": "f3767ba8afb0b16cfb6bc4503d6857fe3ac56c361d74f8f6205afae16b26a0e4"
+    },
+    {
+      "path": "conformance/praxis-v1/candidate.json",
+      "mode": "100644",
+      "sha256": "e23d52321e079f8b3123add38c81f2f2f56577171ec7b39bf219fa003990f59e"
+    },
+    {
+      "path": "conformance/praxis-v1/obstructions/agent-pre-effect-admission/README.md",
+      "mode": "100644",
+      "sha256": "4803bc744305774fd6b27c692debf2a61df2ff5380899e3eedf51dc148f8f4e2"
+    },
+    {
+      "path": "conformance/praxis-v1/obstructions/agent-pre-effect-admission/result.txt",
+      "mode": "100644",
+      "sha256": "11e728e34b38863aa85aa1973f9373298f41e64aa0c104af3d539b368214f491"
+    },
+    {
+      "path": "conformance/praxis-v1/obstructions/agent-text-comparison/README.md",
+      "mode": "100644",
+      "sha256": "006c7c9568f3873d70928562377011fc0b1e9ae26473bac0ac6e8c340d52b84e"
+    },
+    {
+      "path": "conformance/praxis-v1/obstructions/agent-text-comparison/reproducer/build.zig",
+      "mode": "100644",
+      "sha256": "ad948b1df60238b345f886ff1696dfd4e421abd89883a8b29fc99fd866f77c48"
+    },
+    {
+      "path": "conformance/praxis-v1/obstructions/agent-text-comparison/reproducer/build.zig.zon",
+      "mode": "100644",
+      "sha256": "0208452417fbff83e9372e1a435777ff1f2b1ce43405b592c2c1762e30a49b1a"
+    },
+    {
+      "path": "conformance/praxis-v1/obstructions/agent-text-comparison/reproducer/main.zig",
+      "mode": "100644",
+      "sha256": "a9ddd0c1cc4a91ec1f05bbdbb373a9dcdae5c5b3d39741947c2ed30b2d522f0d"
+    },
+    {
+      "path": "conformance/praxis-v1/obstructions/agent-text-comparison/reproducer/verify.mjs",
+      "mode": "100644",
+      "sha256": "ec7d060748ffef9f8de7d6057ed32a7794ced53a8862ecb36f1dc061e47dc30a"
+    },
+    {
+      "path": "conformance/praxis-v1/obstructions/agent-text-comparison/result.txt",
+      "mode": "100644",
+      "sha256": "ea64f8ba5d3b14a9c98cab3d422d77086f227d74999fc350996cefeb18d8c9c1"
+    },
+    {
+      "path": "conformance/praxis-v1/receipts/live.redacted.json",
+      "mode": "100644",
+      "sha256": "7e3ef307ea22cd407874a5a1ff12985054bad0c72c6beb47981d0e57dd47d18d"
+    },
+    {
+      "path": "conformance/praxis-v1/receipts/publication.json",
+      "mode": "100644",
+      "sha256": "217bad4e779bdbc4e8c1b2ed62d152ae520ec83628c0afd5d8423608f9f631a2"
+    },
+    {
+      "path": "conformance/praxis-v1/reference-stack.lock.json",
+      "mode": "100644",
+      "sha256": "2faa97b6ea400bd5ede68ff0db1d5d463deec104253516251990dbc6cf254d12"
+    },
+    {
+      "path": "fixtures/zig-repository-v1/build.zig",
+      "mode": "100644",
+      "sha256": "92c86ad3bbe35903b451c81af729d391f93f6bfff69ff8d94d9b39348ca51058"
+    },
+    {
+      "path": "fixtures/zig-repository-v1/build.zig.zon",
+      "mode": "100644",
+      "sha256": "f31d1d6e21d51f4277a408cd8882dd4e62a063601c6719fde8b7a36b1edf8e49"
+    },
+    {
+      "path": "fixtures/zig-repository-v1/policy.json",
+      "mode": "100644",
+      "sha256": "7483a008750dbde35bdd12c783f1132cc5f4521bf3bf233ff68213a5aeac9ea8"
+    },
+    {
+      "path": "fixtures/zig-repository-v1/src/range.zig",
+      "mode": "100644",
+      "sha256": "eb2861e93f3cc0626c2a0e154d7914bb1dfa0b82b92303fb10c3c24144a6f81a"
+    },
+    {
+      "path": "fixtures/zig-repository-v1/test/range_test.zig",
+      "mode": "100644",
+      "sha256": "b03579cdc1615b1180ff6b2f51dc2b6f123b2056e7a3083f244aaf988f526661"
+    },
+    {
+      "path": "package.json",
+      "mode": "100644",
+      "sha256": "bf2da124a7e292a2ea99200baaaa608eb2a247e5d929a57b8f3db31d81e7e473"
+    },
+    {
+      "path": "runtime/bindings.mjs",
+      "mode": "100644",
+      "sha256": "7b87ec99457d36b5d36b3c75cfe796dee38db0d25f2e6235ac3022dea1005511"
+    },
+    {
+      "path": "runtime/codecs.mjs",
+      "mode": "100644",
+      "sha256": "f73c15ee12a37b12000a5c9f1a4e9ff45ee72f2d80dee4cc789f696188a42510"
+    },
+    {
+      "path": "runtime/fixture-model-adapter.mjs",
+      "mode": "100644",
+      "sha256": "b5508f145fab240471787dc9f89746faf429497d9899b8d3837f7263c1edd82d"
+    },
+    {
+      "path": "runtime/manifests/fixture-model.json",
+      "mode": "100644",
+      "sha256": "c7ee57ae2989f0f54ce055b63a41cf56cf9a8db96c9597f71b3dd878f06d9ad6"
+    },
+    {
+      "path": "runtime/manifests/openai.json",
+      "mode": "100644",
+      "sha256": "e39a28e012e4ac1d07a3846e6cd309ba5eee0d74ddcb95fc5e84d9d64029a0bb"
+    },
+    {
+      "path": "runtime/manifests/workspace.json",
+      "mode": "100644",
+      "sha256": "038037344f43993cbff38b12e9ee84575b2312b7c8e2061d3d92a42d539187ee"
+    },
+    {
+      "path": "runtime/non-claims.md",
+      "mode": "100644",
+      "sha256": "2cfa2a0c32fc5f4eda374ddeb690280fad255715651c877d05d886cc7c78028e"
+    },
+    {
+      "path": "runtime/openai-adapter.mjs",
+      "mode": "100644",
+      "sha256": "dd0dca92a4fb04cb059ce6839689aa42ff8a8f6d84664407c59b5ef35b6f69ad"
+    },
+    {
+      "path": "runtime/workspace-adapter.mjs",
+      "mode": "100644",
+      "sha256": "527930ea1e7b997b2f761e5ca4e082b600dc786d7fb458bb3c9011eed0e3d7e4"
+    },
+    {
+      "path": "src/application.zig",
+      "mode": "100644",
+      "sha256": "311f69f3bd7b1b701d7e4cec022059d463269ec097d8f6684edd415319456744"
+    },
+    {
+      "path": "src/definition.zig",
+      "mode": "100644",
+      "sha256": "f1b0da0846a869fa5a423a8e74b7927f07e41973911908f81c288d4752897c84"
+    },
+    {
+      "path": "src/emit_binding_manifest.zig",
+      "mode": "100644",
+      "sha256": "bcbb8ade5854aab9fa1baaa00efe82b38287d58d7662dc48cc3df56944281dab"
+    },
+    {
+      "path": "src/emit_codec_vectors.zig",
+      "mode": "100644",
+      "sha256": "29ac4319c17b5ebf2669998350df47586e75a93564870d5b312c5a6051577a10"
+    },
+    {
+      "path": "src/emit_decision_contract.zig",
+      "mode": "100644",
+      "sha256": "5732e2add3dc064beb3284720d242c31c806f2d4370764e6d68a9c6a2cecd819"
+    },
+    {
+      "path": "src/emit_initial_args.zig",
+      "mode": "100644",
+      "sha256": "27bc45e47ca4e71b22f94a307750802223cbb83bad74a811446be4bc28264ada"
+    },
+    {
+      "path": "src/emit_type_measurements.zig",
+      "mode": "100644",
+      "sha256": "1da07c76214240842479e2c499c44798fce4fd898d41215e28ca83b6cefa47c4"
+    },
+    {
+      "path": "src/epistemics.zig",
+      "mode": "100644",
+      "sha256": "f0f1ca6b2345b661f07c3a77ca8c8c0b9ff16eb84fb42a5f06e6dbda843b2c5d"
+    },
+    {
+      "path": "src/epistemics_test.zig",
+      "mode": "100644",
+      "sha256": "f887dce38c6ce582e3bf23bffef00aba072c1d85fe109b73c1b920d45a03ce93"
+    },
+    {
+      "path": "src/obstruction_test.zig",
+      "mode": "100644",
+      "sha256": "726cfd15f1c84658c7d3b759b8e3e0ceaad65c29d17772073c16317552295ba6"
+    },
+    {
+      "path": "src/wasm_main.zig",
+      "mode": "100644",
+      "sha256": "b37e38293e9a19406d39d64d4cb2d2ef08b2c13e9a10b1144d64f7a1d2ff7406"
+    },
+    {
+      "path": "test/bindings.test.mjs",
+      "mode": "100644",
+      "sha256": "c2d54297dd463758ee94beb6216b9489827b9ca018200cca7207f13c107e0aaa"
+    },
+    {
+      "path": "test/fixture-model-adapter.test.mjs",
+      "mode": "100644",
+      "sha256": "3f00fc527f0de5f3656cef5efafba77f74cbac127aac159a017f45ad28a3bd49"
+    },
+    {
+      "path": "test/hidden-verifier.mjs",
+      "mode": "100644",
+      "sha256": "25312b4afc79a5f50302551dea053b0fbebba2297fa5bc5bc108fd7b0b5cf2a2"
+    },
+    {
+      "path": "test/hidden_range_cases.zig",
+      "mode": "100644",
+      "sha256": "00c0d389450c6c73af1aedebce87c7c7a64703689292ec6ef81f72c943ffee77"
+    },
+    {
+      "path": "test/live.test.mjs",
+      "mode": "100644",
+      "sha256": "41b18ec3a77583b04da0d1e9160a33b844676292e0af770f65644a33a1d54981"
+    },
+    {
+      "path": "test/openai-adapter.test.mjs",
+      "mode": "100644",
+      "sha256": "14fd135b0bbac4fb6d394c11cca7e5cefc5f339645d9fd953f7c1ec7302a3f43"
+    },
+    {
+      "path": "test/reference-stack.test.mjs",
+      "mode": "100644",
+      "sha256": "eebccd0bed36074429f7e74d77250694f99d01c1a03a92ce1c6ebbda8122a6cd"
+    },
+    {
+      "path": "test/runtime.test.mjs",
+      "mode": "100644",
+      "sha256": "ab1ad82a2317825b75d67659e67df9b33a0598691fda1fb99942701bc4a64ab2"
+    },
+    {
+      "path": "test/workspace-adapter.test.mjs",
+      "mode": "100644",
+      "sha256": "038e80233e412a56997713b204a62e40200e3efa2e763cd426b2a4a841c68651"
+    },
+    {
+      "path": "tools/build-release.mjs",
+      "mode": "100644",
+      "sha256": "3154466cf361bf0f88d57fbf6e87c3658b8f812b73b7e7dc7e388bd6aea5e625"
+    },
+    {
+      "path": "tools/candidate.mjs",
+      "mode": "100644",
+      "sha256": "177d85f7a764096de257e6b29e7db65e6a0d5672be5f3a94dea2c9e951bbd67e"
+    },
+    {
+      "path": "tools/check-artifacts.mjs",
+      "mode": "100644",
+      "sha256": "1235b098b714f63bc268a709e9d9e7e3267ae87acc1f75d7493cbdba90020e8b"
+    },
+    {
+      "path": "tools/check-codecs.mjs",
+      "mode": "100644",
+      "sha256": "501b7645200106195d20d47408eece70c85654a8ec3dd6b2179ce10c24ac8587"
+    },
+    {
+      "path": "tools/check-corrections.mjs",
+      "mode": "100644",
+      "sha256": "8d33140b8dd3b4391cd7427eb96b80d39e795f60847332f53ad541568f70b051"
+    },
+    {
+      "path": "tools/check-lock.mjs",
+      "mode": "100644",
+      "sha256": "d77573a217137e03e3471eeeae872256ac5d4ea553e86c7e96b8655a3b8a7ea2"
+    },
+    {
+      "path": "tools/check-packs.mjs",
+      "mode": "100644",
+      "sha256": "7c5a04370707b6c44247868a8d6fda3ac6d093b505e606d3802d9fd3eec39c50"
+    },
+    {
+      "path": "tools/deterministic.mjs",
+      "mode": "100644",
+      "sha256": "da1acd3d9f35d0b475aa720ba6ea1adbb37ca0ce7b39db63aa30c7e6f5a3632d"
+    },
+    {
+      "path": "tools/lifecycle.mjs",
+      "mode": "100644",
+      "sha256": "18398f6c1194870fb99e6e3dbc2e34e3d40616c96d3ae091da9700c1529e0965"
+    },
+    {
+      "path": "tools/live.mjs",
+      "mode": "100644",
+      "sha256": "2728535c39df5992fd45121ebc09a813130d0e8186b5243ae5cc5262830e96f2"
+    },
+    {
+      "path": "tools/measure.mjs",
+      "mode": "100644",
+      "sha256": "5184ae1ef6cbbc08f8ae8b2676def21f2eda5ff2766ebcd0f29fe30daed525d6"
+    },
+    {
+      "path": "tools/publish.mjs",
+      "mode": "100644",
+      "sha256": "3d8a238f8be1d3c0ccab37a26b83d3241fcf2ed966821e663e6f0fcf8c20b501"
+    },
+    {
+      "path": "tools/reference-stack.mjs",
+      "mode": "100644",
+      "sha256": "d993f219dfd3737c06d512fe0b33906c9ad58fb9d4625e90ea16187f0e611f9f"
+    },
+    {
+      "path": "tools/release-identity.mjs",
+      "mode": "100644",
+      "sha256": "fa374006eccddb5cec3157dbe708cd3a103b829885d28674fd7e98ca371f417a"
+    },
+    {
+      "path": "tools/run.mjs",
+      "mode": "100644",
+      "sha256": "10c2d869af428a6fb2d5de61530fcbb48cfe8720bf54d264e88c43ffa552727a"
+    },
+    {
+      "path": "tools/source-manifest.mjs",
+      "mode": "100644",
+      "sha256": "479ec23b275700d857d92c80400b808b37855f6bf877005916dcbeae73048b32"
+    },
+    {
+      "path": "tools/verify-final-worktree.mjs",
+      "mode": "100644",
+      "sha256": "fb238527675eb20a6ac6733044f2e5f84a9d358929559421a3d632a73d183b5b"
+    }
+  ]
+}

@@ -69,9 +69,19 @@ describe("workspace policy", () => {
     expect(spawnSync("git", ["-c", "user.name=Praxis Test", "-c", "user.email=praxis@example.invalid", "commit", "-qm", "parent"], { cwd: parent }).status).toBe(0);
     const nested = join(parent, "exported-praxis");
     const candidatePath = join(nested, "candidate.json");
+    const manifestPath = join(nested, "source-manifest.json");
+    const sourcePath = join(nested, "source.txt");
     await mkdir(nested);
-    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision })}\n`);
-    expect(await sourceCommitAt(nested, candidatePath)).toBe(baseRevision);
+    await writeFile(sourcePath, "source\n");
+    const manifestBytes = `${JSON.stringify({
+      format: "praxis-source-manifest/v1",
+      entries: [{ path: "source.txt", mode: "100644", sha256: digest("source\n") }],
+    }, null, 2)}\n`;
+    await writeFile(manifestPath, manifestBytes);
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(manifestBytes) })}\n`);
+    expect(await sourceCommitAt(nested, candidatePath, manifestPath)).toBe(baseRevision);
+    await writeFile(sourcePath, "modified\n");
+    await expect(sourceCommitAt(nested, candidatePath, manifestPath)).rejects.toThrow(/exported source bytes differ/);
   });
 
   test("correction inventory rejects a missing verifier", async () => {
@@ -104,6 +114,7 @@ describe("workspace policy", () => {
       openaiAdapterSha256: "0".repeat(64),
       codecsSha256: "1".repeat(64),
       referenceStackLockSha256: "2".repeat(64),
+      sourceManifestSha256: "7".repeat(64),
       deterministicReceiptSha256: "3".repeat(64),
       retryReceiptSha256: "4".repeat(64),
       replayReceiptSha256: "5".repeat(64),
