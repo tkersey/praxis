@@ -8,7 +8,11 @@ import { verifyCandidate } from "./candidate.mjs";
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const conformanceRoot = path.join(repositoryRoot, "conformance/praxis-v1");
-const prefix = "praxis-v1.0.0";
+const packageManifest = await readFile(path.join(repositoryRoot, "build.zig.zon"), "utf8");
+const versionMatch = packageManifest.match(/\.version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"/);
+if (!versionMatch) throw new Error("package version is missing");
+export const releaseVersion = versionMatch[1];
+const prefix = `praxis-v${releaseVersion}`;
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 function command(executable, args, options = {}) {
@@ -36,11 +40,11 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
   const temporary = await mkdtemp(path.join(tmpdir(), "praxis-release-"));
   try {
     const sourceArchive = path.join(outputRoot, `${prefix}-source.tar.gz`);
-    command("git", ["archive", "--format=tar.gz", `--prefix=praxis-1.0.0/`, "-o", sourceArchive, candidate.praxisCommit]);
-    const runtimeRoot = path.join(temporary, "runtime", "praxis-1.0.0-runtime");
+    command("git", ["archive", "--format=tar.gz", `--prefix=praxis-${releaseVersion}/`, "-o", sourceArchive, candidate.praxisCommit]);
+    const runtimeRoot = path.join(temporary, "runtime", `praxis-${releaseVersion}-runtime`);
     for (const relative of ["runtime", "tools", "src/emit_initial_args.zig", "build.zig", "build.zig.zon", "package.json", "README.md", "LICENSE", "conformance/praxis-v1/reference-stack.lock.json"]) await copy(relative, runtimeRoot);
     const runtimeArchive = path.join(outputRoot, `${prefix}-runtime.tar.gz`); await tarDirectory(path.dirname(runtimeRoot), runtimeArchive);
-    const artifactRoot = path.join(temporary, "artifacts", "praxis-1.0.0-artifacts");
+    const artifactRoot = path.join(temporary, "artifacts", `praxis-${releaseVersion}-artifacts`);
     await copy("zig-out/repository-steward", artifactRoot); await copy("zig-out/bin/praxis-initial-args", artifactRoot);
     await copy("fixtures/zig-repository-v1", artifactRoot);
     for (const name of ["deterministic", "retry", "replay", "measure"]) await copy(`conformance/praxis-v1/receipts/${name}.json`, artifactRoot);
@@ -51,9 +55,9 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
     ];
     for (const [source, target] of named) await cp(path.join(conformanceRoot, `receipts/${source}.json`), path.join(outputRoot, target));
     const finalReceipt = [
-      "result=praxis_complete", "application=repository-steward", "application_version=1.0.0",
+      "result=praxis_complete", "application=repository-steward", `application_version=${releaseVersion}`,
       `candidate_commit=${candidate.praxisCommit}`, `application_id=${candidate.applicationId}`,
-      "released_stack=agent-2.5.0,boundary-1.5.0,world-3.1.3,world-host-1.0.1,world-capabilities-2.3.2",
+      "released_stack=agent-2.5.0,boundary-1.5.0,world-3.1.3,world-host-1.0.2,world-capabilities-2.3.2",
       "deterministic_passed=true", "retry_passed=true", "replay_passed=true", "measurement_gates_passed=true",
       `live_success_count=${live.live_success_count}`, "draft_pr_published=true", "published_tree_matches_verified_diff=true",
       "substrate_changes_required=false", "",

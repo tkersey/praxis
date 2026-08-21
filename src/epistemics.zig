@@ -8,6 +8,10 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
             index: agent.Value(u32),
         };
         const PathLookup = DocumentLookup;
+        const PathAdmission = struct {
+            allowed: agent.Value(bool),
+            known: agent.Value(bool),
+        };
         const empty_path: T.Path = .{};
 
         pub fn constantValues(comptime _: type, comptime _: anytype) @TypeOf(.{
@@ -69,6 +73,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
             T.Memory,
             T.DecisionView,
             T.DecisionEvidence,
+            T.ReadEvidence,
             T.ListResult,
             ?T.ListResult,
             T.Documents,
@@ -93,6 +98,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 T.Memory,
                 T.DecisionView,
                 T.DecisionEvidence,
+                T.ReadEvidence,
                 T.ListResult,
                 ?T.ListResult,
                 T.Documents,
@@ -128,6 +134,10 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 .mutation_count = 0,
                 .last_test_mutation_count = 0,
                 .test_count = 0,
+                .latest_read = .{
+                    .path = empty_path,
+                    .observed_test_count = 0,
+                },
             };
         }
 
@@ -227,7 +237,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
             return .{ .found = result[0], .index = result[1] };
         }
 
-        fn distinctPathAllowed(flow: anytype, mutations: anytype, candidate: anytype, comptime context: anytype) agent.Value(bool) {
+        fn distinctPathAdmission(flow: anytype, mutations: anytype, candidate: anytype, comptime context: anytype) PathAdmission {
             const State = .{
                 T.Mutations,
                 T.Path,
@@ -246,7 +256,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
             const classify = flow.block(.segment, Step);
             const append = flow.block(.segment, Step);
             const reject = flow.block(.segment, .{});
-            const joined = flow.block(.segment, .{bool});
+            const joined = flow.block(.segment, .{ bool, bool });
             const empty = flow.constant(T.Path, context.empty_path_index);
             flow.jump(header, .{
                 mutations,
@@ -270,7 +280,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                     flow.constant(u32, context.maximum_changed_files_index),
                 )),
             );
-            flow.branch(done, joined, .{available}, inspect, values);
+            flow.branch(done, joined, .{ available, values[6] }, inspect, values);
 
             const inspected = flow.enter(inspect);
             const mutation = flow.vectorGet(inspected[0], inspected[8]);
@@ -350,7 +360,10 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 classified,
             );
             _ = flow.enter(reject);
-            flow.jump(joined, .{flow.constant(bool, context.false_index)});
+            flow.jump(joined, .{
+                flow.constant(bool, context.false_index),
+                flow.constant(bool, context.false_index),
+            });
 
             const appended = flow.enter(append);
             flow.jump(header, .{
@@ -366,7 +379,8 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 appended[9],
             });
 
-            return flow.enter(joined)[0];
+            const result = flow.enter(joined);
+            return .{ .allowed = result[0], .known = result[1] };
         }
 
         fn upsertDocument(flow: anytype, documents: anytype, snapshot: anytype, comptime context: anytype) agent.Value(T.Documents) {
@@ -415,6 +429,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 mutation_count,
                 mutation_count,
                 flow.integerAdd(flow.productExtract(10, memory), flow.constant(u32, context.one_index)),
+                flow.productExtract(11, memory),
             });
         }
 
@@ -508,6 +523,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 flow.productExtract(8, duplicate_values[0]),
                 flow.productExtract(9, duplicate_values[0]),
                 flow.productExtract(10, duplicate_values[0]),
+                flow.productExtract(11, duplicate_values[0]),
             })});
 
             const new_values = flow.enter(new_mutation);
@@ -547,6 +563,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 flow.integerAdd(flow.productExtract(8, apply_values[0]), flow.constant(u32, context.one_index)),
                 flow.productExtract(9, apply_values[0]),
                 flow.productExtract(10, apply_values[0]),
+                flow.productExtract(11, apply_values[0]),
             })});
             return flow.enter(joined)[0];
         }
@@ -594,15 +611,25 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
             return flow.enter(joined)[0];
         }
 
+        fn observeRead(flow: anytype, memory: anytype, snapshot: anytype, comptime context: anytype) agent.Value(T.Memory) {
+            var next = replaceMemoryField(
+                flow,
+                memory,
+                1,
+                upsertDocument(flow, flow.productExtract(1, memory), snapshot, context),
+            );
+            const evidence = flow.productConstruct(T.ReadEvidence, .{
+                flow.productExtract(0, snapshot),
+                flow.productExtract(10, memory),
+            });
+            next = replaceMemoryField(flow, next, 11, evidence);
+            return next;
+        }
+
         fn observePayload(flow: anytype, memory: anytype, comptime index: u16, payload: anytype, comptime context: anytype) agent.Value(T.Memory) {
             return switch (index) {
                 0 => replaceMemoryField(flow, memory, 0, flow.optionalSome(?T.ListResult, payload)),
-                1 => replaceMemoryField(
-                    flow,
-                    memory,
-                    1,
-                    upsertDocument(flow, flow.productExtract(1, memory), payload, context),
-                ),
+                1 => observeRead(flow, memory, payload, context),
                 2 => replaceMemoryField(flow, memory, 2, flow.optionalSome(?T.SearchResult, payload)),
                 3 => observeTest(flow, memory, payload, context),
                 4 => observeReplacement(flow, memory, payload, context),
@@ -698,6 +725,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 flow.productExtract(8, memory),
                 flow.productExtract(9, memory),
                 flow.productExtract(10, memory),
+                flow.productExtract(11, memory),
             });
             return flow.productConstruct(T.DecisionView, .{
                 flow.productExtract(0, memory),
@@ -720,11 +748,23 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
             const path = flow.productExtract(0, request);
             const expected_digest = flow.productExtract(1, request);
             const documents = flow.productExtract(1, memory);
-            const distinct_path_allowed = distinctPathAllowed(
+            const path_admission = distinctPathAdmission(
                 flow,
                 flow.productExtract(5, memory),
                 path,
                 context,
+            );
+            const latest_read = flow.productExtract(11, memory);
+            const revised_path_read_fresh = flow.booleanAnd(
+                textEqual(flow, flow.productExtract(0, latest_read), path),
+                flow.integerEqual(
+                    flow.productExtract(1, latest_read),
+                    flow.productExtract(10, memory),
+                ),
+            );
+            const read_requirement_satisfied = flow.booleanOr(
+                flow.booleanNot(path_admission.known),
+                revised_path_read_fresh,
             );
             const lookup = findDocument(flow, documents, path, context);
             const inspect = flow.block(.segment, .{ T.Documents, u32 });
@@ -741,7 +781,10 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                     tested_current,
                     flow.booleanAnd(
                         below_limit,
-                        flow.booleanAnd(distinct_path_allowed, digest_matches),
+                        flow.booleanAnd(
+                            path_admission.allowed,
+                            flow.booleanAnd(read_requirement_satisfied, digest_matches),
+                        ),
                     ),
                 ),
             )});

@@ -176,6 +176,11 @@ fn emitDecisionTurns(emitter: *Emitter) !void {
     });
     const path1 = try text(praxis.Path, "src/file-1.zig");
     try drive(&state, .{ .read_file = .{ .path = path1 } }, try snapshot("src/file-1.zig", 'c', "const other = 0;\n"));
+    try drive(
+        &state,
+        .{ .read_file = .{ .path = path0 } },
+        try snapshot("src/file-0.zig", 'b', "const value = 1;\n"),
+    );
     const multi_path = try nextRequest(state);
     switch (multi_path.value) {
         .s0 => |turn| try emitter.emit("decision_turn_multi_path", "decision_turn", null, @TypeOf(turn), turn),
@@ -213,6 +218,14 @@ fn emitDecisionTurns(emitter: *Emitter) !void {
                 .truncated = false,
             });
             next_decision = try nextRequest(state);
+            try resumeRequest(&state, next_decision, praxis.Action{ .read_file = .{ .path = path0 } });
+            const next_read_request = try nextRequest(state);
+            try resumeRequest(
+                &state,
+                next_read_request,
+                try snapshot("src/file-0.zig", new_digest_byte, contents),
+            );
+            next_decision = try nextRequest(state);
         }
     }
     switch (next_decision.value) {
@@ -235,8 +248,10 @@ pub fn main(init: std.process.Init) !void {
     try emitter.emit("action_search", "action", null, praxis.Action, .{ .search_text = .{ .query = try text(praxis.QueryText, "needle"), .path_prefix = try text(praxis.Path, "src") } });
     try emitter.emit("action_test", "action", null, praxis.Action, .{ .run_tests = .{ .suite = .full } });
     try emitter.emit("action_replace", "action", null, praxis.Action, .{ .replace_file = .{
-        .path = try text(praxis.Path, "src/main.zig"), .expected_sha256 = try digest('a'),
-        .replacement = try text(praxis.FileText, "const repaired = true;\n"), .rationale = try text(praxis.SummaryText, "Repair behavior."),
+        .path = try text(praxis.Path, "src/main.zig"),
+        .expected_sha256 = try digest('a'),
+        .replacement = try text(praxis.FileText, "const repaired = true;\n"),
+        .rationale = try text(praxis.SummaryText, "Repair behavior."),
     } });
     const final_value = praxis.FinalResult{ .summary = try text(praxis.SummaryText, "Repaired and verified."), .changed_files = try changedFiles(2), .tests_passed = true, .mutation_count = 2 };
     try emitter.emit("action_final", "action", null, praxis.Action, .{ .final = final_value });
@@ -248,8 +263,10 @@ pub fn main(init: std.process.Init) !void {
     try emitter.emit("payload_search", "payload", "search", praxis.SearchRequest, .{ .query = try text(praxis.QueryText, "needle"), .path_prefix = try text(praxis.Path, "src") });
     try emitter.emit("payload_test", "payload", "test", praxis.TestRequest, .{ .suite = .full });
     try emitter.emit("payload_replace", "payload", "replace", praxis.ReplaceRequest, .{
-        .path = try text(praxis.Path, "src/main.zig"), .expected_sha256 = try digest('a'),
-        .replacement = try text(praxis.FileText, "const repaired = true;\n"), .rationale = try text(praxis.SummaryText, "Repair behavior."),
+        .path = try text(praxis.Path, "src/main.zig"),
+        .expected_sha256 = try digest('a'),
+        .replacement = try text(praxis.FileText, "const repaired = true;\n"),
+        .rationale = try text(praxis.SummaryText, "Repair behavior."),
     });
 
     try emitter.emit("result_list_empty", "result", "list", praxis.ListResult, try listResult(0));
@@ -260,7 +277,10 @@ pub fn main(init: std.process.Init) !void {
     try emitter.emit("result_test_positive", "result", "test", praxis.TestResult, .{ .exit_code = 0, .passed = true, .output = try text(praxis.TestOutput, "all checks passed"), .truncated = false });
     try emitter.emit("result_test_negative", "result", "test", praxis.TestResult, .{ .exit_code = -7, .passed = false, .output = try text(praxis.TestOutput, "check failed"), .truncated = true });
     try emitter.emit("result_replace_applied", "result", "replace", praxis.ReplaceOutcome, .{ .applied = .{
-        .path = try text(praxis.Path, "src/main.zig"), .old_sha256 = try digest('a'), .new_sha256 = try digest('b'), .already_applied = false,
+        .path = try text(praxis.Path, "src/main.zig"),
+        .old_sha256 = try digest('a'),
+        .new_sha256 = try digest('b'),
+        .already_applied = false,
         .current = try snapshot("src/main.zig", 'b', "const repaired = true;\n"),
     } });
     try emitter.emit("result_replace_denied", "result", "replace", praxis.ReplaceOutcome, .{ .denied = .{ .path = try text(praxis.Path, "src/main.zig"), .reason = try text(praxis.ReasonText, "not writable") } });

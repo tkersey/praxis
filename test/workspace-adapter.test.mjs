@@ -10,6 +10,7 @@ import {
   resolve,
   _workspaceInternals,
 } from "../runtime/workspace-adapter.mjs";
+import { releaseVersion } from "../tools/build-release.mjs";
 
 const roots = [];
 afterEach(async () => { while (roots.length > 0) await rm(roots.pop(), { recursive: true, force: true }); });
@@ -56,6 +57,10 @@ function request(operation, payload = {}, requestId = "1".repeat(64)) {
 }
 
 describe("workspace policy", () => {
+  test("release builder derives the current package identity", () => {
+    expect(releaseVersion).toBe("1.0.6");
+  });
+
   test("v1.0.5 correction evidence is exact and executable", async () => {
     const correction = JSON.parse(await readFile(new URL("../conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/result.json", import.meta.url), "utf8"));
     expect(correction).toEqual({
@@ -79,6 +84,34 @@ describe("workspace policy", () => {
       maximum_changed_files: _workspaceInternals.compiledLimits.maximumChangedFiles,
       machine_abi: 2,
       application_abi: 1,
+      effect_protocol: 1,
+    });
+  });
+
+  test("v1.0.6 read-freshness correction evidence is exact", async () => {
+    const correction = JSON.parse(await readFile(new URL("../conformance/praxis-v1.0.6/obstructions/read-freshness-observability/result.json", import.meta.url), "utf8"));
+    expect(correction).toEqual({
+      format: "praxis-obstruction-correction/v1",
+      owner: "parent_application_obstruction",
+      failed_release: "v1.0.5",
+      failed_instruction_requires_fresh_read: true,
+      failed_decision_view_exposes_read_epoch: false,
+      failed_identical_decision_context_count: 19,
+      failed_identical_decision_context_sha256: "deeed61282d8ad55429e1135ac74b87cf55da370e1a64cef28f8ae13e9713507",
+      failed_terminal_failure: "Boundary Machine execution budget exceeded",
+      successor_read_evidence_typed: true,
+      successor_read_evidence_contains_path: true,
+      successor_read_evidence_contains_observed_test_count: true,
+      successor_changed_path_revision_requires_current_read_evidence: true,
+      successor_new_check_stales_prior_read_evidence: true,
+      successor_model_instructions_name_read_evidence: true,
+      selected_model_changed: false,
+      maximum_replacements: 10,
+      maximum_changed_files: 4,
+      machine_abi: 2,
+      machine_state: "ABL_RNF2",
+      application_abi: 1,
+      frame: 1,
       effect_protocol: 1,
     });
   });

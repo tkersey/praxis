@@ -166,6 +166,8 @@ test "initial projection" {
     try std.testing.expectEqual(@as(u32, 0), memory.mutation_count);
     try std.testing.expectEqual(@as(u32, 0), memory.last_test_mutation_count);
     try std.testing.expectEqual(@as(u32, 0), memory.test_count);
+    try std.testing.expectEqualStrings("", try memory.latest_read.path.slice());
+    try std.testing.expectEqual(@as(u32, 0), memory.latest_read.observed_test_count);
 }
 
 test "listing and search replacement" {
@@ -202,6 +204,8 @@ test "document upsert and reread" {
     try std.testing.expectEqualStrings("new", try document.contents.slice());
     const expected = try digest(1);
     try std.testing.expect(document.sha256.eql(&expected));
+    try std.testing.expectEqualStrings(try path.slice(), try view.evidence.latest_read.path.slice());
+    try std.testing.expectEqual(@as(u32, 0), view.evidence.latest_read.observed_test_count);
 }
 
 test "eleventh document overflows before committed memory mutation" {
@@ -274,6 +278,27 @@ test "second mutation without an intervening check is rejected" {
     try expectRejectedAction(&state, try replaceAction(path, 1), .invalid_variant);
 }
 
+test "same path revision after check but before fresh read is rejected" {
+    var state = try newState();
+    defer Machine.deinitState(state);
+    const path = try indexedPath(0);
+    try applyFirstMutation(&state, path);
+    try driveEffect(&state, testAction(), try testResult(false));
+    const decision = try nextRequest(state);
+    const view = try decisionView(decision);
+    try std.testing.expectEqual(@as(u32, 2), view.evidence.test_count);
+    try std.testing.expectEqual(@as(u32, 0), view.evidence.latest_read.observed_test_count);
+    try resumeRequest(&state, decision, try replaceAction(path, 1));
+    var fuel: u64 = 8_000_000;
+    switch (try Machine.step(state, &fuel)) {
+        .failed => |failure| switch (failure) {
+            .authored => |authored| try std.testing.expectEqual(praxis.Failure.invalid_variant, authored),
+            else => return error.ExpectedAuthoredFailure,
+        },
+        else => return error.ExpectedRejectedAction,
+    }
+}
+
 test "same path revision after failed check and reread is admitted" {
     var state = try newState();
     defer Machine.deinitState(state);
@@ -281,7 +306,13 @@ test "same path revision after failed check and reread is admitted" {
     try applyFirstMutation(&state, path);
     try driveEffect(&state, testAction(), try testResult(false));
     try driveEffect(&state, readAction(path), try snapshot(path, 1, "first repair"));
-    try driveEffect(&state, try replaceAction(path, 1), try appliedOutcome(path, 1, 2, false));
+    const decision = try nextRequest(state);
+    const read_view = try decisionView(decision);
+    try std.testing.expectEqualStrings(try path.slice(), try read_view.evidence.latest_read.path.slice());
+    try std.testing.expectEqual(read_view.evidence.test_count, read_view.evidence.latest_read.observed_test_count);
+    try resumeRequest(&state, decision, try replaceAction(path, 1));
+    const effect = try nextRequest(state);
+    try resumeRequest(&state, effect, try appliedOutcome(path, 1, 2, false));
     const view = try decisionView(try nextRequest(state));
     try std.testing.expectEqual(@as(u32, 2), view.evidence.mutation_count);
     try std.testing.expectEqual(@as(u32, 2), try view.mutations.len());
