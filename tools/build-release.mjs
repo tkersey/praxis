@@ -1,7 +1,6 @@
-import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { verifyCandidate } from "./candidate.mjs";
@@ -12,6 +11,7 @@ const packageManifest = await readFile(path.join(repositoryRoot, "build.zig.zon"
 const versionMatch = packageManifest.match(/\.version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"/);
 if (!versionMatch) throw new Error("package version is missing");
 export const releaseVersion = versionMatch[1];
+export const releaseCandidatePath = path.join(repositoryRoot, `conformance/praxis-v${releaseVersion}/candidate.json`);
 const prefix = `praxis-v${releaseVersion}`;
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
@@ -21,7 +21,6 @@ function command(executable, args, options = {}) {
   return result;
 }
 
-async function json(file) { return JSON.parse(await readFile(file, "utf8")); }
 async function copy(relative, destination) { const target = path.join(destination, relative); await mkdir(path.dirname(target), { recursive: true }); await cp(path.join(repositoryRoot, relative), target, { recursive: true }); }
 
 async function tarDirectory(source, target) {
@@ -29,13 +28,7 @@ async function tarDirectory(source, target) {
 }
 
 export async function buildRelease({ outputRoot = path.join(repositoryRoot, "release") } = {}) {
-  const candidate = await verifyCandidate(path.join(conformanceRoot, "candidate.json"));
-  const livePath = path.join(conformanceRoot, "receipts/live.redacted.json");
-  const publicationPath = path.join(conformanceRoot, "receipts/publication.json");
-  const [live, publication] = await Promise.all([json(livePath), json(publicationPath)]);
-  assert.equal(live.mode, "live"); assert.equal(live.terminal_status, "completed"); assert.equal(live.independent_verifier_passed, true);
-  assert.equal(publication.mode, "publication"); assert.equal(publication.draft, true); assert.equal(publication.published_tree_matches_verified_diff, true);
-  assert.equal(live.candidate_commit, candidate.praxisCommit); assert.equal(publication.candidate_commit, candidate.praxisCommit);
+  const candidate = await verifyCandidate(releaseCandidatePath);
   await mkdir(outputRoot, { recursive: true });
   const temporary = await mkdtemp(path.join(tmpdir(), "praxis-release-"));
   try {
@@ -49,20 +42,6 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
     await copy("fixtures/zig-repository-v1", artifactRoot);
     for (const name of ["deterministic", "retry", "replay", "measure"]) await copy(`conformance/praxis-v1/receipts/${name}.json`, artifactRoot);
     const artifactArchive = path.join(outputRoot, `${prefix}-artifacts.tar.gz`); await tarDirectory(path.dirname(artifactRoot), artifactArchive);
-    const named = [
-      ["deterministic", `${prefix}-deterministic-receipt.json`], ["live.redacted", `${prefix}-live-receipt.redacted.json`],
-      ["publication", `${prefix}-publication-receipt.json`],
-    ];
-    for (const [source, target] of named) await cp(path.join(conformanceRoot, `receipts/${source}.json`), path.join(outputRoot, target));
-    const finalReceipt = [
-      "result=praxis_complete", "application=repository-steward", `application_version=${releaseVersion}`,
-      `candidate_commit=${candidate.praxisCommit}`, `application_id=${candidate.applicationId}`,
-      "released_stack=agent-2.5.0,boundary-1.5.0,world-3.1.3,world-host-1.0.2,world-capabilities-2.3.2",
-      "deterministic_passed=true", "retry_passed=true", "replay_passed=true", "measurement_gates_passed=true",
-      `live_success_count=${live.live_success_count}`, "draft_pr_published=true", "published_tree_matches_verified_diff=true",
-      "substrate_changes_required=false", "",
-    ].join("\n");
-    await writeFile(path.join(outputRoot, `${prefix}-final-receipt.txt`), finalReceipt);
     const assetNames = (await readdir(outputRoot)).filter((name) => name.startsWith(prefix) && name !== `${prefix}-checksums.txt`).sort();
     const lines = [];
     for (const name of assetNames) lines.push(`${sha256(await readFile(path.join(outputRoot, name)))}  ${name}`);

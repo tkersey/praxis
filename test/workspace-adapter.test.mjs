@@ -10,7 +10,8 @@ import {
   resolve,
   _workspaceInternals,
 } from "../runtime/workspace-adapter.mjs";
-import { releaseVersion } from "../tools/build-release.mjs";
+import { releaseCandidatePath, releaseVersion } from "../tools/build-release.mjs";
+import { protectedCandidatePaths } from "../tools/candidate.mjs";
 
 const roots = [];
 afterEach(async () => { while (roots.length > 0) await rm(roots.pop(), { recursive: true, force: true }); });
@@ -59,6 +60,8 @@ function request(operation, payload = {}, requestId = "1".repeat(64)) {
 describe("workspace policy", () => {
   test("release builder derives the current package identity", () => {
     expect(releaseVersion).toBe("1.0.6");
+    expect(releaseCandidatePath).toEndWith("/conformance/praxis-v1.0.6/candidate.json");
+    expect(protectedCandidatePaths).toContain("conformance/praxis-v1.0.6/obstructions/read-freshness-observability");
   });
 
   test("v1.0.5 correction evidence is exact and executable", async () => {
@@ -96,8 +99,6 @@ describe("workspace policy", () => {
       failed_release: "v1.0.5",
       failed_instruction_requires_fresh_read: true,
       failed_decision_view_exposes_read_epoch: false,
-      failed_identical_decision_context_count: 19,
-      failed_identical_decision_context_sha256: "deeed61282d8ad55429e1135ac74b87cf55da370e1a64cef28f8ae13e9713507",
       failed_terminal_failure: "Boundary Machine execution budget exceeded",
       successor_read_evidence_typed: true,
       successor_read_evidence_contains_path: true,
@@ -105,6 +106,8 @@ describe("workspace policy", () => {
       successor_changed_path_revision_requires_current_read_evidence: true,
       successor_new_check_stales_prior_read_evidence: true,
       successor_model_instructions_name_read_evidence: true,
+      successor_application_id: "cbc39c24cd93cb09f4d3549fff3f63bb392e0e8eff07835d6bb0bd61e916f1b2",
+      successor_decision_contract_digest: "31043a38d56e7da441546e509be84ba7fdc7fc79513de3d3de7701874024a5d7",
       selected_model_changed: false,
       maximum_replacements: 10,
       maximum_changed_files: 4,

@@ -12,8 +12,7 @@ export const protectedCandidatePaths = Object.freeze([
   "tools", "package.json", "conformance/praxis-v1/reference-stack.lock.json",
   "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/README.md",
   "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/result.json",
-  "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/README.md",
-  "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/result.json",
+  "conformance/praxis-v1.0.6/obstructions/read-freshness-observability",
 ]);
 
 function git(args, { allowFailure = false } = {}) {
