@@ -6,6 +6,7 @@ import path from "node:path";
 import { decodeFinalResult } from "../runtime/codecs.mjs";
 import { prepareRepository } from "./deterministic.mjs";
 import { runDeterministic } from "./deterministic.mjs";
+import { sourceCommit } from "./release-identity.mjs";
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const receiptsRoot = path.join(repositoryRoot, "conformance/praxis-v1/receipts");
@@ -74,7 +75,7 @@ export async function proveRetry(options = {}) {
   const receipt = {
     praxis_format: 1,
     mode: "retry",
-    candidate_commit: command("git", ["rev-parse", "HEAD"]).trim(),
+    candidate_commit: await sourceCommit(),
     application_id: environment.bindingManifest.applicationId,
     application_wasm_sha256: sha256(environment.wasmBytes),
     deterministic_retry: true,
@@ -140,7 +141,7 @@ export async function proveReplay(options = {}) {
   const receipt = {
     praxis_format: 1,
     mode: "replay",
-    candidate_commit: command("git", ["rev-parse", "HEAD"]).trim(),
+    candidate_commit: await sourceCommit(),
     application_id: recorded.bindingManifest.applicationId,
     application_wasm_sha256: sha256(recorded.wasmBytes),
     genesis_frame_id: recorded.receipt.genesis_frame_id,

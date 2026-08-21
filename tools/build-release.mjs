@@ -37,7 +37,16 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
   const temporary = await mkdtemp(path.join(tmpdir(), "praxis-release-"));
   try {
     const sourceArchive = path.join(outputRoot, `${prefix}-source.tar.gz`);
-    command("git", ["archive", "--format=tar.gz", `--prefix=praxis-${releaseVersion}/`, "-o", sourceArchive, candidate.praxisCommit]);
+    const sourceTar = path.join(temporary, "source.tar");
+    command("git", ["archive", "--format=tar", `--prefix=praxis-${releaseVersion}/`, "-o", sourceTar, candidate.praxisCommit]);
+    const sourceOverlay = path.join(temporary, "source-overlay");
+    const candidateEntry = `praxis-${releaseVersion}/${versionedConformanceRelative}/candidate.json`;
+    const candidateOverlay = path.join(sourceOverlay, candidateEntry);
+    await mkdir(path.dirname(candidateOverlay), { recursive: true });
+    await cp(versionedCandidatePath, candidateOverlay);
+    command("tar", ["-rf", sourceTar, "-C", sourceOverlay, candidateEntry]);
+    const compressedSource = command("gzip", ["-n", "-c", sourceTar], { binary: true }).stdout;
+    await writeFile(sourceArchive, compressedSource);
     const runtimeRoot = path.join(temporary, "runtime", `praxis-${releaseVersion}-runtime`);
     for (const relative of ["runtime", "tools", "src/emit_initial_args.zig", "build.zig", "build.zig.zon", "package.json", "README.md", "LICENSE", "conformance/praxis-v1/reference-stack.lock.json"]) await copy(relative, runtimeRoot);
     const runtimeArchive = path.join(outputRoot, `${prefix}-runtime.tar.gz`); await tarDirectory(path.dirname(runtimeRoot), runtimeArchive);
@@ -72,7 +81,12 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
     for (const archive of [sourceArchive, runtimeArchive, artifactArchive]) {
       const entries = command("tar", ["-tzf", archive]).stdout;
       if (/(^|\/)\.env($|\n)|runtime-store|OPENAI_API_KEY/.test(entries)) throw new Error(`forbidden release archive entry in ${path.basename(archive)}`);
-      if (archive === sourceArchive && /\/conformance\/praxis-v[^/]*\/candidate\.json(?:\n|$)/.test(entries)) throw new Error("source archive contains a self-freezing candidate record");
+      if (archive === sourceArchive) {
+        const candidateEntries = entries.split("\n").filter((entry) => entry.endsWith("/candidate.json"));
+        if (candidateEntries.length !== 1 || candidateEntries[0] !== candidateEntry) throw new Error("source archive candidate inventory mismatch");
+        const archivedCandidate = command("tar", ["-xOzf", sourceArchive, candidateEntry], { binary: true }).stdout;
+        if (!Buffer.from(archivedCandidate).equals(await readFile(versionedCandidatePath))) throw new Error("source archive candidate bytes mismatch");
+      }
     }
     return Object.freeze({ format: successorReleaseFormat, outputRoot, assets: [...assetNames, `${prefix}-checksums.txt`] });
   } finally { await rm(temporary, { recursive: true, force: true }); }

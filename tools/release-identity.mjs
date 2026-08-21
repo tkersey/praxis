@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 export const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
@@ -12,3 +13,11 @@ export const versionedConformanceRelative = `conformance/praxis-v${releaseVersio
 export const versionedConformanceRoot = path.join(repositoryRoot, versionedConformanceRelative);
 export const versionedCandidatePath = path.join(versionedConformanceRoot, "candidate.json");
 export const successorReleaseFormat = "praxis-successor-artifact-release/v1";
+
+export async function sourceCommit() {
+  const git = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" });
+  if (!git.error && git.status === 0 && /^[0-9a-f]{40}\n?$/.test(git.stdout)) return git.stdout.trim();
+  const candidate = JSON.parse(await readFile(versionedCandidatePath, "utf8"));
+  if (candidate?.format !== "praxis-candidate/v1" || !/^[0-9a-f]{40}$/.test(candidate.praxisCommit)) throw new Error("source candidate commit is unavailable");
+  return candidate.praxisCommit;
+}
