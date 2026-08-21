@@ -301,7 +301,7 @@ function encodeDecisionView(w, value) {
   w.optional(v.latest_search, (item) => encodeSearchResult(w, item));
   w.optional(v.latest_test, (item) => encodeTestResult(w, item));
   w.optional(v.latest_replace, (item) => encodeReplaceSummary(w, item));
-  w.vector(v.mutations, 6, "mutations", (item) => encodeMutationSummary(w, item));
+  w.vector(v.mutations, 10, "mutations", (item) => encodeMutationSummary(w, item));
   const evidence = exactObject(v.evidence, ["baseline_test_observed", "latest_test_passed", "mutation_count", "last_test_mutation_count", "test_count"], "DecisionEvidence");
   w.bool(evidence.baseline_test_observed); w.bool(evidence.latest_test_passed); w.u32(evidence.mutation_count);
   w.u32(evidence.last_test_mutation_count); w.u32(evidence.test_count);
@@ -313,7 +313,7 @@ function decodeDecisionView(r) {
     latest_search: r.optional(() => decodeSearchResult(r)),
     latest_test: r.optional(() => decodeTestResult(r)),
     latest_replace: r.optional(() => decodeReplaceSummary(r)),
-    mutations: r.vector(6, "mutations", () => decodeMutationSummary(r)),
+    mutations: r.vector(10, "mutations", () => decodeMutationSummary(r)),
     evidence: {
       baseline_test_observed: r.bool(), latest_test_passed: r.bool(), mutation_count: r.u32(),
       last_test_mutation_count: r.u32(), test_count: r.u32(),

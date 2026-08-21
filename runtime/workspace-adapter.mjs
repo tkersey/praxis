@@ -265,6 +265,10 @@ async function replaceApproved(context, request) {
     const handle = await open(temporary, "wx", admitted.info.mode & 0o777);
     try { await handle.writeFile(replacementBytes); await handle.sync(); } finally { await handle.close(); }
     await rename(temporary, admitted.full);
+    context.mutationCount = (context.mutationCount ?? 0) + 1;
+    context.appliedPaths ??= [];
+    context.appliedPaths.push(payload.path);
+    await context.afterReplacementRename?.({ path: payload.path, replacementSha256 });
   } finally { await rm(temporary, { force: true }).catch(() => {}); }
   const final = await readSnapshot(context, payload.path);
   if (final.sha256 !== replacementSha256) throw new Error("replacement_digest_mismatch");
@@ -303,11 +307,6 @@ export async function resolve(context, request) {
     }
     if (request.payload.operation === "replace") {
       const replacement = await replaceApproved(context, request);
-      if (replacement.outcome === "applied" && !replacement.value.already_applied) {
-        context.mutationCount = (context.mutationCount ?? 0) + 1;
-        context.appliedPaths ??= [];
-        context.appliedPaths.push(replacement.value.path);
-      }
       return ok(request, replacement);
     }
     return reject(request, "operation_not_admitted");

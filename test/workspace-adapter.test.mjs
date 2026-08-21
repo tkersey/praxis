@@ -155,6 +155,34 @@ describe("workspace adapter", () => {
     expect(await readFile(join(root, "src/main.zig"), "utf8")).toBe(firstPayload.replacement);
   });
 
+  test("post-rename failure remains charged and replay cannot exceed receiver ceiling", async () => {
+    const { root, context } = await fixture(1);
+    const firstPayload = { path: "src/main.zig", expected_sha256: digest("const value = 0;\n"), replacement: "const value = 1;\n", rationale: "Correct value." };
+    const firstEffect = request("replace", firstPayload, "5".repeat(64));
+    context.afterReplacementRename = async () => { throw new Error("simulated_post_rename_failure"); };
+    const interrupted = await resolve(context, firstEffect);
+    expect(interrupted.status).toBe("failed");
+    expect(context.mutationCount).toBe(1);
+    expect(context.approvalBindings).toHaveLength(1);
+    expect(await readFile(join(root, "src/main.zig"), "utf8")).toBe(firstPayload.replacement);
+
+    delete context.afterReplacementRename;
+    const replay = await resolve(context, firstEffect);
+    expect(replay.payload.value.already_applied).toBe(true);
+    expect(context.mutationCount).toBe(1);
+    expect(context.approvalBindings).toHaveLength(1);
+
+    const denied = await resolve(context, request("replace", {
+      path: "src/main.zig",
+      expected_sha256: digest(firstPayload.replacement),
+      replacement: "const value = 2;\n",
+      rationale: "Exceed recovered receiver ceiling.",
+    }, "6".repeat(64)));
+    expect(denied.payload.value.reason).toBe("mutation_operation_limit_reached");
+    expect(context.mutationCount).toBe(1);
+    expect(await readFile(join(root, "src/main.zig"), "utf8")).toBe(firstPayload.replacement);
+  });
+
   test("returns a typed conflict without writing", async () => {
     const { root, context } = await fixture();
     const outcome = await resolve(context, request("replace", { path: "src/main.zig", expected_sha256: "a".repeat(64), replacement: "new\n", rationale: "Try." }));
