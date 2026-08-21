@@ -14,7 +14,7 @@ import {
 import { releaseCandidatePath, releaseVersion, successorReleaseFormat } from "../tools/build-release.mjs";
 import { assertCandidateShape, defaultCandidatePath, protectedCandidatePaths } from "../tools/candidate.mjs";
 import { correctionVerifierPaths } from "../tools/check-corrections.mjs";
-import { sourceCommitAt } from "../tools/release-identity.mjs";
+import { sourceReceiptIdentityAt } from "../tools/release-identity.mjs";
 
 const roots = [];
 afterEach(async () => { while (roots.length > 0) await rm(roots.pop(), { recursive: true, force: true }); });
@@ -80,9 +80,15 @@ describe("workspace policy", () => {
     }, null, 2)}\n`;
     await writeFile(manifestPath, manifestBytes);
     await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(manifestBytes) })}\n`);
-    expect(await sourceCommitAt(nested, candidatePath, manifestPath)).toBe(baseRevision);
+    expect(await sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).toEqual({
+      source_identity: "export-manifest",
+      candidate_commit: null,
+      source_manifest_sha256: digest(manifestBytes),
+    });
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: "f".repeat(40), sourceManifestSha256: digest(manifestBytes) })}\n`);
+    expect((await sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).candidate_commit).toBeNull();
     await writeFile(sourcePath, "modified\n");
-    await expect(sourceCommitAt(nested, candidatePath, manifestPath)).rejects.toThrow(/exported source bytes differ/);
+    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).rejects.toThrow(/exported source bytes differ/);
   });
 
   test("correction inventory rejects a missing verifier", async () => {

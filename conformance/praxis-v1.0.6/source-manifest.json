@@ -98,7 +98,7 @@
     {
       "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/README.md",
       "mode": "100644",
-      "sha256": "fd748e63c8097ff55330ad4a8ddfb4246a39af1006983b54e78954a1a091a33c"
+      "sha256": "6f9985acb0273d8d23939f2aefd99514deb7555c69f8117e6773ed91c95ed794"
     },
     {
       "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/reproducer/failed-v1.0.5/candidate.json",
@@ -358,7 +358,7 @@
     {
       "path": "test/workspace-adapter.test.mjs",
       "mode": "100644",
-      "sha256": "ea7e401c50ad12cbc92032cd009a16611a0596da26e6ddd25c173135164ec764"
+      "sha256": "5a699357a0cf570fb5e423242ac3eb0304f9c9b71e3babed2f711ba5651c820d"
     },
     {
       "path": "tools/build-release.mjs",
@@ -368,7 +368,7 @@
     {
       "path": "tools/candidate.mjs",
       "mode": "100644",
-      "sha256": "177d85f7a764096de257e6b29e7db65e6a0d5672be5f3a94dea2c9e951bbd67e"
+      "sha256": "af2ab88993b27b37d8c54e029d451d519a93b98374677a9c1c523c4ffea8a320"
     },
     {
       "path": "tools/check-artifacts.mjs",
@@ -398,12 +398,12 @@
     {
       "path": "tools/deterministic.mjs",
       "mode": "100644",
-      "sha256": "da1acd3d9f35d0b475aa720ba6ea1adbb37ca0ce7b39db63aa30c7e6f5a3632d"
+      "sha256": "3f626610c8e93305f0354232d274c64b2b9bfbd0adfa45960863a60e33e7e5f4"
     },
     {
       "path": "tools/lifecycle.mjs",
       "mode": "100644",
-      "sha256": "18398f6c1194870fb99e6e3dbc2e34e3d40616c96d3ae091da9700c1529e0965"
+      "sha256": "82f68c399b30b3d264f4409df2df559bc0a474e7da83399c40d02f8fb28e7f8a"
     },
     {
       "path": "tools/live.mjs",
@@ -413,7 +413,7 @@
     {
       "path": "tools/measure.mjs",
       "mode": "100644",
-      "sha256": "5184ae1ef6cbbc08f8ae8b2676def21f2eda5ff2766ebcd0f29fe30daed525d6"
+      "sha256": "8963df63c5661733902a128cb6343a9a2625db0c5b3324bcbeb766c04fab45ca"
     },
     {
       "path": "tools/publish.mjs",
@@ -428,7 +428,7 @@
     {
       "path": "tools/release-identity.mjs",
       "mode": "100644",
-      "sha256": "56ebfa28ece2797308be3d8a2d45b6eef28c3d6cd61ee45243156c9c32928e5a"
+      "sha256": "8ecacfa417a75823b5c6df8761f4240105f1b570afb0d6a5f5f1b44b63f5baa9"
     },
     {
       "path": "tools/run.mjs",

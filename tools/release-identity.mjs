@@ -127,7 +127,7 @@ export async function verifySourceManifestAt(root, manifestPath, expectedDigest,
   return manifest;
 }
 
-export async function sourceCommitAt(root, candidatePath, manifestPath = path.join(root, ...sourceManifestRelative.split("/"))) {
+export async function sourceReceiptIdentityAt(root, candidatePath, manifestPath = path.join(root, ...sourceManifestRelative.split("/"))) {
   const gitRoot = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: root, encoding: "utf8" });
   if (!gitRoot.error && gitRoot.status === 0) {
     const [resolvedRoot, resolvedGitRoot] = await Promise.all([
@@ -136,19 +136,21 @@ export async function sourceCommitAt(root, candidatePath, manifestPath = path.jo
     ]);
     if (resolvedGitRoot === resolvedRoot) {
       const git = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" });
-      if (!git.error && git.status === 0 && /^[0-9a-f]{40}\n?$/.test(git.stdout)) return git.stdout.trim();
+      if (!git.error && git.status === 0 && /^[0-9a-f]{40}\n?$/.test(git.stdout)) {
+        return { source_identity: "git-commit", candidate_commit: git.stdout.trim(), source_manifest_sha256: null };
+      }
     }
   }
   const candidate = JSON.parse(await readFile(candidatePath, "utf8"));
-  if (candidate?.format !== "praxis-candidate/v1" || !/^[0-9a-f]{40}$/.test(candidate.praxisCommit)) throw new Error("source candidate commit is unavailable");
+  if (candidate?.format !== "praxis-candidate/v1") throw new Error("source candidate metadata is unavailable");
   const relativeCandidate = path.relative(root, candidatePath).split(path.sep).join("/");
   const relativeManifest = path.relative(root, manifestPath).split(path.sep).join("/");
   await verifySourceManifestAt(root, manifestPath, candidate.sourceManifestSha256, [relativeCandidate, relativeManifest]);
-  return candidate.praxisCommit;
+  return { source_identity: "export-manifest", candidate_commit: null, source_manifest_sha256: sha256(await readFile(manifestPath)) };
 }
 
-export async function sourceCommit() {
-  return sourceCommitAt(repositoryRoot, versionedCandidatePath);
+export async function sourceReceiptIdentity() {
+  return sourceReceiptIdentityAt(repositoryRoot, versionedCandidatePath);
 }
 
 export async function verifyCurrentSourceManifest() {

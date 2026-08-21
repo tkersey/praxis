@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { runDeterministic } from "./deterministic.mjs";
-import { sourceCommit } from "./release-identity.mjs";
+import { sourceReceiptIdentity } from "./release-identity.mjs";
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -42,7 +42,7 @@ export async function proveMeasurements(options = {}) {
   const receipt = {
     praxis_format: 1,
     mode: "measure",
-    candidate_commit: await sourceCommit(),
+    ...await sourceReceiptIdentity(),
     application_id: proof.bindingManifest.applicationId,
     application_wasm_sha256: sha256(proof.wasmBytes),
     measurements,

@@ -9,7 +9,7 @@ import * as workspaceAdapter from "../runtime/workspace-adapter.mjs";
 import { createFixtureModelAdapter } from "../runtime/fixture-model-adapter.mjs";
 import { createPraxisRouter } from "../runtime/bindings.mjs";
 import { decodeFinalResult } from "../runtime/codecs.mjs";
-import { sourceCommit } from "./release-identity.mjs";
+import { sourceReceiptIdentity } from "./release-identity.mjs";
 import { verifyFixture } from "../test/hidden-verifier.mjs";
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
@@ -162,7 +162,7 @@ export async function runDeterministic(rawOptions = {}) {
   const hidden = verifyFixture({ worktree: prepared.worktree, baseRevision: prepared.baseRevision, policy: admittedPolicy.policy, zigExecutable: options.zigExecutable, evidence: context });
   const receipt = {
     praxis_format: 1, mode: "deterministic",
-    candidate_commit: await sourceCommit(),
+    ...await sourceReceiptIdentity(),
     application_id: bindingManifest.applicationId, application_wasm_sha256: sha256(wasmBytes),
     policy_digest: admittedPolicy.digest, base_revision: prepared.baseRevision,
     genesis_frame_id: genesisFrameId, terminal_frame_id: Buffer.from(terminal.frameId).toString("hex"),

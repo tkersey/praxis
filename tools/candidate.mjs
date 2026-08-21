@@ -64,6 +64,7 @@ export async function candidateInputs() {
   assert.equal(binding.applicationVersion, releaseVersion, "binding application version differs from package release version");
   const applicationWasmSha256 = await digestFile(path.join(artifactsRoot, "repository-steward.world.wasm"));
   for (const receipt of [deterministic, retry, replay, measure]) {
+    if (receipt.source_identity !== "git-commit" || receipt.source_manifest_sha256 !== null) throw new Error(`${receipt.mode} receipt source identity is invalid`);
     if (!/^[0-9a-f]{40}$/.test(receipt.candidate_commit)) throw new Error(`${receipt.mode} receipt candidate is invalid`);
     if (receipt.application_id !== binding.applicationId) throw new Error(`${receipt.mode} application identity mismatch`);
     if (receipt.application_wasm_sha256 !== applicationWasmSha256) throw new Error(`${receipt.mode} application WASM identity mismatch`);
