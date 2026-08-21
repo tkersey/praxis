@@ -80,13 +80,13 @@ describe("workspace policy", () => {
     }, null, 2)}\n`;
     await writeFile(manifestPath, manifestBytes);
     await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(manifestBytes) })}\n`);
-    expect(await sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).toEqual({
+    expect(await sourceReceiptIdentityAt(nested, candidatePath, manifestPath, digest(manifestBytes))).toEqual({
       source_identity: "export-manifest",
       candidate_commit: null,
       source_manifest_sha256: digest(manifestBytes),
     });
     await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: "f".repeat(40), sourceManifestSha256: digest(manifestBytes) })}\n`);
-    expect((await sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).candidate_commit).toBeNull();
+    expect((await sourceReceiptIdentityAt(nested, candidatePath, manifestPath, digest(manifestBytes))).candidate_commit).toBeNull();
     const ignoredBytes = `${JSON.stringify({
       format: "praxis-source-manifest/v1",
       export_ignored_paths: ["source.txt"],
@@ -95,16 +95,27 @@ describe("workspace policy", () => {
     await writeFile(join(nested, "parent-marker.txt"), "marker\n");
     await writeFile(manifestPath, ignoredBytes);
     await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(ignoredBytes) })}\n`);
-    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).rejects.toThrow(/export-ignored source path is present/);
+    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath, digest(ignoredBytes))).rejects.toThrow(/export-ignored source path is present/);
     await writeFile(manifestPath, manifestBytes);
     await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(manifestBytes) })}\n`);
     await rm(join(nested, "parent-marker.txt"));
     await mkdir(join(nested, "src/release"), { recursive: true });
     await writeFile(join(nested, "src/release/payload"), "unexpected\n");
-    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).rejects.toThrow(/exported source inventory differs/);
+    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath, digest(manifestBytes))).rejects.toThrow(/exported source inventory differs/);
     await rm(join(nested, "src"), { recursive: true });
     await writeFile(sourcePath, "modified\n");
-    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).rejects.toThrow(/exported source bytes differ/);
+    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath, digest(manifestBytes))).rejects.toThrow(/exported source bytes differ/);
+  });
+
+  test("no-Git source identity requires an external manifest digest", async () => {
+    const root = await mkdtemp(join(tmpdir(), "praxis-source-export-")); roots.push(root);
+    const candidatePath = join(root, "candidate.json"); const manifestPath = join(root, "source-manifest.json");
+    await writeFile(join(root, "source.txt"), "source\n");
+    const manifestBytes = `${JSON.stringify({ format: "praxis-source-manifest/v1", export_ignored_paths: [], entries: [{ path: "source.txt", mode: "100644", sha256: digest("source\n") }] }, null, 2)}\n`;
+    await writeFile(manifestPath, manifestBytes);
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(manifestBytes) })}\n`);
+    await expect(sourceReceiptIdentityAt(root, candidatePath, manifestPath)).rejects.toThrow(/authenticated source manifest digest is required/);
+    expect((await sourceReceiptIdentityAt(root, candidatePath, manifestPath, digest(manifestBytes))).source_identity).toBe("export-manifest");
   });
 
   test("Git commit identity rejects dirty source", async () => {

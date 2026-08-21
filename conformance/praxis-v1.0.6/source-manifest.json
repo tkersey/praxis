@@ -98,7 +98,7 @@
     {
       "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/README.md",
       "mode": "100644",
-      "sha256": "c81b20555295ea7adadee32e05aa5618bf0dd80e3844b67f3596d48dfd6612cb"
+      "sha256": "05007c8acfeed11f6af0ccc98ee328c660156b3dd847b0c26d117cfd472a27c7"
     },
     {
       "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/reproducer/failed-v1.0.5/candidate.json",
@@ -358,7 +358,7 @@
     {
       "path": "test/workspace-adapter.test.mjs",
       "mode": "100644",
-      "sha256": "4c60e899300067792f77a3fd8425d3371dcf1c043f75ba7fd1c38d2b28e83db4"
+      "sha256": "bfcd7540edaae8e8579df5e718bc05773224d2d24c3a1683e5c0ddfce613b487"
     },
     {
       "path": "tools/build-release.mjs",
@@ -428,7 +428,7 @@
     {
       "path": "tools/release-identity.mjs",
       "mode": "100644",
-      "sha256": "0f6ff7ce652255287a32f0874f40cd99b218714603fc09516715e6dc719efad2"
+      "sha256": "0e3b95a6c316e83a3f85b959d7555e977405a3b7877cd207ea980e3cb48d8076"
     },
     {
       "path": "tools/run.mjs",

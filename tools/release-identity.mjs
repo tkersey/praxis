@@ -192,7 +192,7 @@ export async function verifyCheckoutSourceManifestAt(root, manifestPath = path.j
   return actual;
 }
 
-export async function sourceReceiptIdentityAt(root, candidatePath, manifestPath = path.join(root, ...sourceManifestRelative.split("/"))) {
+export async function sourceReceiptIdentityAt(root, candidatePath, manifestPath = path.join(root, ...sourceManifestRelative.split("/")), expectedManifestDigest = null) {
   const gitRoot = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: root, encoding: "utf8" });
   if (!gitRoot.error && gitRoot.status === 0) {
     const [resolvedRoot, resolvedGitRoot] = await Promise.all([
@@ -214,14 +214,16 @@ export async function sourceReceiptIdentityAt(root, candidatePath, manifestPath 
   }
   const candidate = JSON.parse(await readFile(candidatePath, "utf8"));
   if (candidate?.format !== "praxis-candidate/v1") throw new Error("source candidate metadata is unavailable");
+  if (!/^[0-9a-f]{64}$/.test(expectedManifestDigest ?? "")) throw new Error("authenticated source manifest digest is required for no-Git verification");
+  if (candidate.sourceManifestSha256 !== expectedManifestDigest) throw new Error("candidate source manifest differs from the authenticated digest");
   const relativeCandidate = path.relative(root, candidatePath).split(path.sep).join("/");
   const relativeManifest = path.relative(root, manifestPath).split(path.sep).join("/");
-  await verifySourceManifestAt(root, manifestPath, candidate.sourceManifestSha256, [relativeCandidate, relativeManifest]);
+  await verifySourceManifestAt(root, manifestPath, expectedManifestDigest, [relativeCandidate, relativeManifest]);
   return { source_identity: "export-manifest", candidate_commit: null, source_manifest_sha256: sha256(await readFile(manifestPath)) };
 }
 
 export async function sourceReceiptIdentity() {
-  return sourceReceiptIdentityAt(repositoryRoot, versionedCandidatePath);
+  return sourceReceiptIdentityAt(repositoryRoot, versionedCandidatePath, sourceManifestPath, process.env.PRAXIS_SOURCE_MANIFEST_SHA256 ?? null);
 }
 
 export async function verifyCurrentSourceManifest() {
@@ -231,7 +233,9 @@ export async function verifyCurrentSourceManifest() {
   const gitRoot = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: repositoryRoot, encoding: "utf8" });
   const resolvedGitRoot = !gitRoot.error && gitRoot.status === 0 ? await realpath(gitRoot.stdout.trim()).catch(() => null) : null;
   if (resolvedGitRoot === await realpath(repositoryRoot)) return verifyCheckoutSourceManifestAt(repositoryRoot, sourceManifestPath);
-  return verifySourceManifestAt(repositoryRoot, sourceManifestPath, candidate.sourceManifestSha256);
+  const expectedManifestDigest = process.env.PRAXIS_SOURCE_MANIFEST_SHA256 ?? null;
+  if (!/^[0-9a-f]{64}$/.test(expectedManifestDigest ?? "") || candidate.sourceManifestSha256 !== expectedManifestDigest) throw new Error("authenticated source manifest digest is required for no-Git verification");
+  return verifySourceManifestAt(repositoryRoot, sourceManifestPath, expectedManifestDigest);
 }
 
 export async function verifyCheckoutSourceManifest() {
