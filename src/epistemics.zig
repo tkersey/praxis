@@ -622,6 +622,15 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                     flow.constant(u32, context.one_index),
                 ),
             );
+            next = replaceMemoryField(
+                flow,
+                next,
+                9,
+                flow.integerAdd(
+                    flow.productExtract(8, conflict_values[0]),
+                    flow.constant(u32, context.one_index),
+                ),
+            );
             flow.jump(joined, .{next});
             return flow.enter(joined)[0];
         }

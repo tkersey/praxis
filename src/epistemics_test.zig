@@ -381,11 +381,13 @@ test "conflict invalidates read evidence until the exact path is reread" {
     const conflict_view = try decisionView(try nextRequest(conflict_view_state));
     try std.testing.expectEqual(@as(u32, 1), conflict_view.evidence.conflict_count);
     try std.testing.expectEqual(@as(u32, 0), conflict_view.evidence.latest_read.observed_conflict_count);
+    try std.testing.expect(conflict_view.evidence.last_test_mutation_count != conflict_view.evidence.mutation_count);
 
     var rejected = try Machine.cloneState(std.testing.allocator, state);
     defer Machine.deinitState(rejected);
     try expectRejectedAction(&rejected, try replaceAction(path, 0), .invalid_variant);
 
+    try driveEffect(&state, testAction(), try testResult(false));
     try driveEffect(&state, readAction(path), try snapshot(path, 1, "external"));
     const inspected = try Machine.cloneState(std.testing.allocator, state);
     defer Machine.deinitState(inspected);
@@ -409,6 +411,7 @@ test "multiple conflicts keep every pre-conflict read stale" {
         .expected_sha256 = try digest(0),
         .actual_sha256 = try digest(1),
     } });
+    try driveEffect(&state, testAction(), try testResult(false));
     try driveEffect(&state, readAction(second), try snapshot(second, 2, "second"));
     try driveEffect(&state, try replaceAction(second, 2), praxis.ReplaceOutcome{ .conflict = .{
         .path = second,
@@ -419,6 +422,7 @@ test "multiple conflicts keep every pre-conflict read stale" {
     var rejected = try Machine.cloneState(std.testing.allocator, state);
     defer Machine.deinitState(rejected);
     try expectRejectedAction(&rejected, try replaceAction(first, 0), .invalid_variant);
+    try driveEffect(&state, testAction(), try testResult(false));
     try driveEffect(&state, readAction(first), try snapshot(first, 1, "first refreshed"));
     try driveEffect(&state, try replaceAction(first, 1), try appliedOutcome(first, 1, 4, false));
 }

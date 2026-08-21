@@ -31,6 +31,7 @@ async function tarDirectory(source, target) {
 }
 
 export async function buildRelease({ outputRoot = path.join(repositoryRoot, "release") } = {}) {
+  if (command("git", ["status", "--porcelain=v1", "--untracked-files=all"]).stdout !== "") throw new Error("successor release build requires a clean worktree");
   const candidate = await verifyCandidate(versionedCandidatePath);
   await mkdir(outputRoot, { recursive: true });
   const temporary = await mkdtemp(path.join(tmpdir(), "praxis-release-"));
