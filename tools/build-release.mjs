@@ -83,7 +83,7 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
       if (/(^|\/)\.env($|\n)|runtime-store|OPENAI_API_KEY/.test(entries)) throw new Error(`forbidden release archive entry in ${path.basename(archive)}`);
       if (archive === sourceArchive) {
         const candidateEntries = entries.split("\n").filter((entry) => entry.endsWith("/candidate.json"));
-        if (candidateEntries.length !== 1 || candidateEntries[0] !== candidateEntry) throw new Error("source archive candidate inventory mismatch");
+        if (candidateEntries.filter((entry) => entry === candidateEntry).length !== 1) throw new Error("source archive candidate inventory mismatch");
         const archivedCandidate = command("tar", ["-xOzf", sourceArchive, candidateEntry], { binary: true }).stdout;
         if (!Buffer.from(archivedCandidate).equals(await readFile(versionedCandidatePath))) throw new Error("source archive candidate bytes mismatch");
       }
