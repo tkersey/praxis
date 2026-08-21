@@ -98,7 +98,18 @@ async function tarDirectory(root, target) {
   await writeFile(target, compressed);
 }
 
-export const _releaseInternals = Object.freeze({ appendTarFile });
+function validateReleaseAssetInventory(directoryEntries, expectedAssetNames) {
+  const checksumsName = `${prefix}-checksums.txt`;
+  const expected = new Set([...expectedAssetNames, checksumsName]);
+  const matching = directoryEntries.filter((name) => name.startsWith(prefix));
+  const missing = expectedAssetNames.filter((name) => !matching.includes(name)).sort();
+  const unexpected = matching.filter((name) => !expected.has(name)).sort();
+  if (missing.length > 0) throw new Error(`missing release assets: ${missing.join(", ")}`);
+  if (unexpected.length > 0) throw new Error(`unexpected release assets: ${unexpected.join(", ")}`);
+  return [...expectedAssetNames].sort();
+}
+
+export const _releaseInternals = Object.freeze({ appendTarFile, validateReleaseAssetInventory });
 
 export async function buildRelease({ outputRoot = path.join(repositoryRoot, "release") } = {}) {
   if (command("git", ["status", "--porcelain=v1", "--untracked-files=all"]).stdout !== "") throw new Error("successor release build requires a clean worktree");
@@ -141,7 +152,13 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
       publication_claimed: false,
     };
     await writeFile(path.join(outputRoot, `${prefix}-successor-receipt.json`), `${JSON.stringify(successorReceipt, null, 2)}\n`);
-    const assetNames = (await readdir(outputRoot)).filter((name) => name.startsWith(prefix) && name !== `${prefix}-checksums.txt`).sort();
+    const assetNames = validateReleaseAssetInventory(await readdir(outputRoot), [
+      path.basename(sourceArchive),
+      path.basename(runtimeArchive),
+      path.basename(artifactArchive),
+      `${prefix}-candidate.json`,
+      `${prefix}-successor-receipt.json`,
+    ]);
     const lines = [];
     for (const name of assetNames) lines.push(`${sha256(await readFile(path.join(outputRoot, name)))}  ${name}`);
     await writeFile(path.join(outputRoot, `${prefix}-checksums.txt`), `${lines.join("\n")}\n`);

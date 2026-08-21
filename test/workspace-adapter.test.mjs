@@ -164,6 +164,25 @@ describe("workspace policy", () => {
     expect(first.subarray(512, 512 + contents.length).equals(contents)).toBeTrue();
   });
 
+  test("release inventory rejects retired same-prefix assets", () => {
+    const prefix = `praxis-v${releaseVersion}`;
+    const expected = [
+      `${prefix}-source.tar.gz`,
+      `${prefix}-runtime.tar.gz`,
+      `${prefix}-artifacts.tar.gz`,
+      `${prefix}-candidate.json`,
+      `${prefix}-successor-receipt.json`,
+    ];
+    expect(_releaseInternals.validateReleaseAssetInventory(
+      ["unrelated.txt", ...expected, `${prefix}-checksums.txt`],
+      expected,
+    )).toEqual([...expected].sort());
+    expect(() => _releaseInternals.validateReleaseAssetInventory(
+      [...expected, `${prefix}-live-receipt.redacted.json`],
+      expected,
+    )).toThrow(/unexpected release assets: .*live-receipt/);
+  });
+
   test("candidate admission rejects unknown release claims", async () => {
     const candidate = {
       format: "praxis-candidate/v1",
