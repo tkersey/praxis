@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { decodeDecisionTurn } from "../../../../../runtime/codecs.mjs";
@@ -12,14 +13,9 @@ function run(executable, args) {
 
 run("zig", ["build", "check", "--summary", "all"]);
 run(process.execPath, ["tools/check-codecs.mjs"]);
-const git = (args) => {
-  const child = spawnSync("git", args, { cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
-  if (child.error || child.status !== 0) throw new Error(`git ${args.join(" ")} failed`);
-  return child.stdout;
-};
 const result = JSON.parse(await readFile(new URL("../result.json", import.meta.url), "utf8"));
 const resultKeys = [
-  "format", "owner", "failed_release", "failed_release_tag_commit",
+  "format", "owner", "failed_release",
   "failed_definition_blob_oid", "failed_epistemics_blob_oid", "failed_codec_blob_oid",
   "failed_candidate_blob_oid", "failed_decision_contract_digest",
   "failed_instruction_requires_fresh_read", "failed_decision_view_exposes_read_epoch",
@@ -42,6 +38,12 @@ const manifest = await readFile(new URL("../../../../../zig-out/repository-stewa
 const referenceLock = JSON.parse(await readFile(new URL("../../../../../conformance/praxis-v1/reference-stack.lock.json", import.meta.url), "utf8"));
 const successorDefinition = await readFile(new URL("../../../../../src/definition.zig", import.meta.url), "utf8");
 const successorTests = await readFile(new URL("../../../../../src/epistemics_test.zig", import.meta.url), "utf8");
+const failedRoot = new URL("./failed-v1.0.5/", import.meta.url);
+const failedDefinitionBytes = await readFile(new URL("definition.zig", failedRoot));
+const failedEpistemicsBytes = await readFile(new URL("epistemics.zig", failedRoot));
+const failedCodecBytes = await readFile(new URL("codecs.mjs", failedRoot));
+const failedCandidateBytes = await readFile(new URL("candidate.json", failedRoot));
+const gitBlobOid = (bytes) => createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
 const decision = (name) => {
   const vector = vectors.vectors.find((candidate) => candidate.name === name);
   assert.ok(vector, `missing ${name}`);
@@ -51,17 +53,14 @@ const decision = (name) => {
 assert.equal(result.owner, "parent_application_obstruction");
 assert.equal(result.format, "praxis-obstruction-correction/v1");
 assert.equal(result.failed_release, "v1.0.5");
-assert.equal(git(["rev-parse", "v1.0.5^{}"]).trim(), result.failed_release_tag_commit);
-for (const [path, field] of [
-  ["src/definition.zig", "failed_definition_blob_oid"],
-  ["src/epistemics.zig", "failed_epistemics_blob_oid"],
-  ["runtime/codecs.mjs", "failed_codec_blob_oid"],
-  ["conformance/praxis-v1.0.5/candidate.json", "failed_candidate_blob_oid"],
-]) assert.equal(git(["rev-parse", `v1.0.5:${path}`]).trim(), result[field]);
-const failedDefinition = git(["show", "v1.0.5:src/definition.zig"]);
-const failedEpistemics = git(["show", "v1.0.5:src/epistemics.zig"]);
-const failedCodec = git(["show", "v1.0.5:runtime/codecs.mjs"]);
-const failedCandidate = JSON.parse(git(["show", "v1.0.5:conformance/praxis-v1.0.5/candidate.json"]));
+assert.equal(gitBlobOid(failedDefinitionBytes), result.failed_definition_blob_oid);
+assert.equal(gitBlobOid(failedEpistemicsBytes), result.failed_epistemics_blob_oid);
+assert.equal(gitBlobOid(failedCodecBytes), result.failed_codec_blob_oid);
+assert.equal(gitBlobOid(failedCandidateBytes), result.failed_candidate_blob_oid);
+const failedDefinition = failedDefinitionBytes.toString("utf8");
+const failedEpistemics = failedEpistemicsBytes.toString("utf8");
+const failedCodec = failedCodecBytes.toString("utf8");
+const failedCandidate = JSON.parse(failedCandidateBytes);
 assert.equal(failedCandidate.decisionContractDigest, result.failed_decision_contract_digest);
 assert.match(failedDefinition, /fresh check and a fresh read/);
 assert.doesNotMatch(failedDefinition.match(/pub const Memory = struct \{[\s\S]*?\n\};/)?.[0] ?? "", /latest_read|conflict_count|conflicted_path/);

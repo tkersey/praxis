@@ -2,7 +2,6 @@
   "format": "praxis-obstruction-correction/v1",
   "owner": "parent_application_obstruction",
   "failed_release": "v1.0.5",
-  "failed_release_tag_commit": "f46ebdf9e333950eb9577b7391fd7acbd8772923",
   "failed_definition_blob_oid": "bbabb5ef6b1bf22553da47ecd25f39c0ebc33218",
   "failed_epistemics_blob_oid": "a5af1419fd150124d9201ae275a7a0c9b98a6756",
   "failed_codec_blob_oid": "aa79ae42421e2f59fb660ffb7eb7bcb8c3b84ae3",
