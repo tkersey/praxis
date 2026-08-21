@@ -1,11 +1,11 @@
 {
   "praxis_format": 1,
   "mode": "replay",
-  "candidate_commit": "eabc5dd65c0d038f5335679be80e4b3a89e62429",
+  "candidate_commit": "951705ccd7d3532502b1e0f134afdb583e224d04",
   "application_id": "0b3aa252522d95adda4d090600503b6b9c56b01519c0d07a493564830e8cac75",
   "application_wasm_sha256": "e79d46048bcad2f949a13bf99c6a885b86db379e84aa6ddf88fd713faced44d1",
   "genesis_frame_id": "2bb2a0a855cdbb9a6c7024233f699f3f8776b07ac2290f3cd13fe32bc5da8d7c",
-  "terminal_frame_id": "67048c01883beab56b069fcbade70d2bc679a9b3ed4090bfe95b23e301040375",
+  "terminal_frame_id": "4866564b6dd9dedfc7a82bbe9619bf22365d522424659cb64524b61823101113",
   "replay_fresh_effect_count": 0,
   "replay_fresh_model_effect_count": 0,
   "replay_fresh_repository_effect_count": 0,
