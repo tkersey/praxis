@@ -1,13 +1,13 @@
 {
   "praxis_format": 1,
   "mode": "deterministic",
-  "candidate_commit": "b742552a29f6a182d50230028c2b7ec87a0c38d2",
-  "application_id": "5c48cd096506cc320fed55f67406cf79a82241cc60dc43d00313ae31fe968aee",
-  "application_wasm_sha256": "18eaa2159942e578afd65620cae29fcac68b44ed16a07d853cb87fd3e17a341c",
+  "candidate_commit": "f5d2e0f64ab40575b0333049e866d7379ffd6517",
+  "application_id": "d9c7744e1ec5e662ff3830dc2d505b4a5777c89cdac8a29d2d8a9da341701ca5",
+  "application_wasm_sha256": "37d48880360180b7ae124ecc23f825b315e67ea347d830f12011591ce33b08f6",
   "policy_digest": "365c33e947cc0a3eb9cc0253649fabe15adde32737cdabca2f58cd6b1250d8af",
   "base_revision": "6514479d6c63b4d6f0b4b5aa2c9c58d3f60af4a3",
-  "genesis_frame_id": "d093308df2685dfba1f406e8f08367485ac10cc4f304a638d1ebe06f4eba3ea0",
-  "terminal_frame_id": "f37a9727b670b2e544f22d03c89788d773b08cd2b3fe82b321ff69ed61b65491",
+  "genesis_frame_id": "ac39f691075247ec657667e4df7e00493ed6b43a4d20f006a07f5a63d1215fd9",
+  "terminal_frame_id": "b33583815285b0c31b193695e47869c4d11cf2c530fdc7cb38c06ac1672f6af2",
   "ordered_interfaces": [
     "model.decide.v1",
     "repo.list.v2",
@@ -40,16 +40,16 @@
   ],
   "approval_bindings": [
     {
-      "request_id": "ca02e04eb13555fb5e18ca02d1a5e43df3d986a80cc157418d3963ef572e5fff",
-      "proposal_digest": "a33f094e87f376a8c2d132d2c7018a85ef660468c07fc9a23a6de7b0fdad42ce",
+      "request_id": "a8d7fc9f16407df7a50c7276b857bfcc065fdfc6f0ab82de6b6a9cbce9c64a14",
+      "proposal_digest": "a25a87c69bf8ae8ad6291833a7f327817fc1bad13381469ba4ba42a76b152cfc",
       "path": "src/range.zig",
       "expected_sha256": "eb2861e93f3cc0626c2a0e154d7914bb1dfa0b82b92303fb10c3c24144a6f81a",
       "replacement_sha256": "cc1c87cdbdb47bbda911b86d4b9de7bc4a9bd466b869ac6cfdad3c46433c8da4",
       "policy_digest": "365c33e947cc0a3eb9cc0253649fabe15adde32737cdabca2f58cd6b1250d8af"
     },
     {
-      "request_id": "b229d4eb9ab2f49531dc2f201713c0f89b8ad31d09d373309e10fbc478f36973",
-      "proposal_digest": "26dad3438addba42a9d06bb62449aa434bce7b853fb07ff1f36db53ae6787096",
+      "request_id": "855f8f445c4b2a01105d79a50fb679bc1afe59ff455efd3276dfc9afc53acffd",
+      "proposal_digest": "200ef476cb2437846ef0da31a85b9e7b28916e3f43f6373aba651ec0651f7016",
       "path": "test/range_test.zig",
       "expected_sha256": "b03579cdc1615b1180ff6b2f51dc2b6f123b2056e7a3083f244aaf988f526661",
       "replacement_sha256": "13488bf6bba9590aa167507e661064ee8d8521e34e34860d133fa23c770f324a",
