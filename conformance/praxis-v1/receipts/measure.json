@@ -1,7 +1,7 @@
 {
   "praxis_format": 1,
   "mode": "measure",
-  "candidate_commit": "f5d2e0f64ab40575b0333049e866d7379ffd6517",
+  "candidate_commit": "e5ab6189d2c1396809a24add8032d62ead961ca0",
   "application_id": "d9c7744e1ec5e662ff3830dc2d505b4a5777c89cdac8a29d2d8a9da341701ca5",
   "application_wasm_sha256": "37d48880360180b7ae124ecc23f825b315e67ea347d830f12011591ce33b08f6",
   "measurements": {
@@ -11,8 +11,8 @@
     "peakMachineStateBytes": 18937,
     "firstDecisionPayloadBytes": 349,
     "peakDecisionPayloadBytes": 3874,
-    "coldStepNanoseconds": 22204791,
-    "warmStepNanoseconds": 27531042,
+    "coldStepNanoseconds": 22167709,
+    "warmStepNanoseconds": 26783583,
     "stepCount": 20,
     "fuelYieldCount": 0,
     "applicationStateLimitBytes": 524288,
