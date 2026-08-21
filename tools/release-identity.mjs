@@ -24,7 +24,11 @@ export const sourceManifestExcludedPaths = Object.freeze([
   "conformance/praxis-v1/receipts/replay.json",
   "conformance/praxis-v1/receipts/retry.json",
 ]);
-const ignoredGeneratedDirectories = new Set([".git", ".ledger", ".praxis", ".zig-cache", "node_modules", "release", "zig-cache", "zig-out", "zig-pkg"]);
+const ignoredGeneratedPaths = new Set([
+  ".git", ".ledger", ".praxis", ".zig-cache", "node_modules", "release", "zig-cache", "zig-out", "zig-pkg",
+  "conformance/praxis-v1/obstructions/agent-text-comparison/reproducer/.zig-cache",
+  "conformance/praxis-v1/obstructions/agent-text-comparison/reproducer/zig-pkg",
+]);
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const safeRelativePath = (value) => typeof value === "string"
   && value.length > 0
@@ -87,7 +91,7 @@ async function currentSourcePaths(root, excluded, relativeRoot = "") {
   const paths = [];
   for (const entry of entries) {
     const relative = relativeRoot === "" ? entry.name : `${relativeRoot}/${entry.name}`;
-    if ((entry.isDirectory() && ignoredGeneratedDirectories.has(entry.name)) || (relativeRoot === "" && entry.name === ".git")) continue;
+    if ((entry.isDirectory() && ignoredGeneratedPaths.has(relative)) || (relativeRoot === "" && entry.name === ".git")) continue;
     if (excluded.has(relative)) continue;
     if (entry.isDirectory()) paths.push(...await currentSourcePaths(root, excluded, relative));
     else if (entry.isFile() && !entry.isSymbolicLink()) paths.push(relative);
@@ -105,11 +109,16 @@ export async function verifySourceManifestAt(root, manifestPath, expectedDigest,
   if (!Array.isArray(manifest.entries) || manifest.entries.length === 0 || manifest.entries.length > 1024) throw new Error("source manifest entry count is invalid");
   if (!Array.isArray(manifest.export_ignored_paths) || manifest.export_ignored_paths.length > 128) throw new Error("source manifest export-ignore inventory is invalid");
   let previousIgnored = null;
+  const fixedExcluded = new Set([...sourceManifestExcludedPaths, ...additionalExcludedPaths]);
   for (const relative of manifest.export_ignored_paths) {
     if (!safeRelativePath(relative) || (previousIgnored !== null && Buffer.from(previousIgnored).compare(Buffer.from(relative)) >= 0)) throw new Error("source manifest export-ignore paths are invalid");
+    if (!fixedExcluded.has(relative)) {
+      const status = await lstat(path.join(root, ...relative.split("/"))).catch((error) => error?.code === "ENOENT" ? null : Promise.reject(error));
+      if (status !== null) throw new Error(`export-ignored source path is present: ${relative}`);
+    }
     previousIgnored = relative;
   }
-  const excluded = new Set([...sourceManifestExcludedPaths, ...additionalExcludedPaths, ...manifest.export_ignored_paths]);
+  const excluded = new Set([...fixedExcluded, ...manifest.export_ignored_paths]);
   const actual = [];
   let previous = null;
   for (const entry of manifest.entries) {
@@ -127,6 +136,13 @@ export async function verifySourceManifestAt(root, manifestPath, expectedDigest,
   return manifest;
 }
 
+export async function verifyCheckoutSourceManifestAt(root, manifestPath = path.join(root, ...sourceManifestRelative.split("/"))) {
+  const actual = JSON.parse(await readFile(manifestPath, "utf8"));
+  const expected = await createSourceManifestAt(root);
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("checkout source differs from the generated source manifest");
+  return actual;
+}
+
 export async function sourceReceiptIdentityAt(root, candidatePath, manifestPath = path.join(root, ...sourceManifestRelative.split("/"))) {
   const gitRoot = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: root, encoding: "utf8" });
   if (!gitRoot.error && gitRoot.status === 0) {
@@ -135,6 +151,12 @@ export async function sourceReceiptIdentityAt(root, candidatePath, manifestPath 
       realpath(gitRoot.stdout.trim()).catch(() => null),
     ]);
     if (resolvedGitRoot === resolvedRoot) {
+      const allowedDirtyPaths = sourceManifestExcludedPaths.filter((relative) => relative !== sourceManifestRelative);
+      const status = spawnSync("git", [
+        "status", "--porcelain=v1", "--untracked-files=all", "--", ".",
+        ...allowedDirtyPaths.map((relative) => `:(exclude)${relative}`),
+      ], { cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+      if (status.error || status.status !== 0 || status.stdout !== "") throw new Error("Git source identity requires a clean source tree");
       const git = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" });
       if (!git.error && git.status === 0 && /^[0-9a-f]{40}\n?$/.test(git.stdout)) {
         return { source_identity: "git-commit", candidate_commit: git.stdout.trim(), source_manifest_sha256: null };
@@ -155,5 +177,14 @@ export async function sourceReceiptIdentity() {
 
 export async function verifyCurrentSourceManifest() {
   const candidate = JSON.parse(await readFile(versionedCandidatePath, "utf8"));
+  const bytes = await readFile(sourceManifestPath);
+  if (sha256(bytes) !== candidate.sourceManifestSha256) throw new Error("source manifest digest mismatch");
+  const gitRoot = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: repositoryRoot, encoding: "utf8" });
+  const resolvedGitRoot = !gitRoot.error && gitRoot.status === 0 ? await realpath(gitRoot.stdout.trim()).catch(() => null) : null;
+  if (resolvedGitRoot === await realpath(repositoryRoot)) return verifyCheckoutSourceManifestAt(repositoryRoot, sourceManifestPath);
   return verifySourceManifestAt(repositoryRoot, sourceManifestPath, candidate.sourceManifestSha256);
+}
+
+export async function verifyCheckoutSourceManifest() {
+  return verifyCheckoutSourceManifestAt(repositoryRoot, sourceManifestPath);
 }

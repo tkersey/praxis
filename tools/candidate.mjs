@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { releaseVersion, sourceManifestPath, versionedCandidatePath, versionedConformanceRelative } from "./release-identity.mjs";
+import { releaseVersion, sourceManifestPath, verifyCheckoutSourceManifest, versionedCandidatePath, versionedConformanceRelative } from "./release-identity.mjs";
 
 export const defaultCandidatePath = versionedCandidatePath;
 
@@ -53,6 +53,7 @@ export function assertCandidateShape(candidate) {
 }
 
 export async function candidateInputs() {
+  await verifyCheckoutSourceManifest();
   const [binding, deterministic, retry, replay, measure] = await Promise.all([
     json(path.join(artifactsRoot, "repository-steward.binding-manifest.json")),
     json(path.join(conformanceRoot, "receipts/deterministic.json")),

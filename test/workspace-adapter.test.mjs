@@ -87,8 +87,37 @@ describe("workspace policy", () => {
     });
     await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: "f".repeat(40), sourceManifestSha256: digest(manifestBytes) })}\n`);
     expect((await sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).candidate_commit).toBeNull();
+    const ignoredBytes = `${JSON.stringify({
+      format: "praxis-source-manifest/v1",
+      export_ignored_paths: ["source.txt"],
+      entries: [{ path: "parent-marker.txt", mode: "100644", sha256: digest("marker\n") }],
+    }, null, 2)}\n`;
+    await writeFile(join(nested, "parent-marker.txt"), "marker\n");
+    await writeFile(manifestPath, ignoredBytes);
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(ignoredBytes) })}\n`);
+    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).rejects.toThrow(/export-ignored source path is present/);
+    await writeFile(manifestPath, manifestBytes);
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(manifestBytes) })}\n`);
+    await rm(join(nested, "parent-marker.txt"));
+    await mkdir(join(nested, "src/release"), { recursive: true });
+    await writeFile(join(nested, "src/release/payload"), "unexpected\n");
+    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).rejects.toThrow(/exported source inventory differs/);
+    await rm(join(nested, "src"), { recursive: true });
     await writeFile(sourcePath, "modified\n");
     await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath)).rejects.toThrow(/exported source bytes differ/);
+  });
+
+  test("Git commit identity rejects dirty source", async () => {
+    const root = await mkdtemp(join(tmpdir(), "praxis-source-git-")); roots.push(root);
+    await writeFile(join(root, "source.txt"), "source\n");
+    expect(spawnSync("git", ["init", "-q"], { cwd: root }).status).toBe(0);
+    expect(spawnSync("git", ["add", "source.txt"], { cwd: root }).status).toBe(0);
+    expect(spawnSync("git", ["-c", "user.name=Praxis Test", "-c", "user.email=praxis@example.invalid", "commit", "-qm", "source"], { cwd: root }).status).toBe(0);
+    const clean = await sourceReceiptIdentityAt(root, join(root, "unused-candidate.json"), join(root, "unused-manifest.json"));
+    expect(clean.source_identity).toBe("git-commit");
+    expect(clean.candidate_commit).toMatch(/^[0-9a-f]{40}$/);
+    await writeFile(join(root, "source.txt"), "modified\n");
+    await expect(sourceReceiptIdentityAt(root, join(root, "unused-candidate.json"), join(root, "unused-manifest.json"))).rejects.toThrow(/clean source tree/);
   });
 
   test("correction inventory rejects a missing verifier", async () => {
