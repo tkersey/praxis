@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
         with:
           version: 0.16.0
@@ -19,6 +21,7 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: zig version
+      - run: bun tools/source-manifest.mjs --verify
       - run: zig build -j1 check --summary all
         env:
           ZIG_LOCAL_CACHE_DIR: ${{ github.workspace }}/.zig-cache
@@ -28,6 +31,7 @@ jobs:
       - run: bun tools/check-codecs.mjs
       - run: bun tools/check-packs.mjs
       - run: bun tools/check-artifacts.mjs
+      - run: bun tools/check-corrections.mjs
       - run: bun test test/runtime.test.mjs test/workspace-adapter.test.mjs test/bindings.test.mjs test/openai-adapter.test.mjs test/fixture-model-adapter.test.mjs test/live.test.mjs test/reference-stack.test.mjs
       - run: bun tools/run.mjs --mode deterministic
       - run: bun tools/run.mjs --mode retry

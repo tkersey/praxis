@@ -166,6 +166,10 @@ test "initial projection" {
     try std.testing.expectEqual(@as(u32, 0), memory.mutation_count);
     try std.testing.expectEqual(@as(u32, 0), memory.last_test_mutation_count);
     try std.testing.expectEqual(@as(u32, 0), memory.test_count);
+    try std.testing.expectEqualStrings("", try memory.latest_read.path.slice());
+    try std.testing.expectEqual(@as(u32, 0), memory.latest_read.observed_test_count);
+    try std.testing.expectEqual(@as(u32, 0), memory.latest_read.observed_conflict_count);
+    try std.testing.expectEqual(@as(u32, 0), memory.conflict_count);
 }
 
 test "listing and search replacement" {
@@ -202,6 +206,9 @@ test "document upsert and reread" {
     try std.testing.expectEqualStrings("new", try document.contents.slice());
     const expected = try digest(1);
     try std.testing.expect(document.sha256.eql(&expected));
+    try std.testing.expectEqualStrings(try path.slice(), try view.evidence.latest_read.path.slice());
+    try std.testing.expectEqual(@as(u32, 0), view.evidence.latest_read.observed_test_count);
+    try std.testing.expectEqual(@as(u32, 0), view.evidence.latest_read.observed_conflict_count);
 }
 
 test "eleventh document overflows before committed memory mutation" {
@@ -274,6 +281,27 @@ test "second mutation without an intervening check is rejected" {
     try expectRejectedAction(&state, try replaceAction(path, 1), .invalid_variant);
 }
 
+test "same path revision after check but before fresh read is rejected" {
+    var state = try newState();
+    defer Machine.deinitState(state);
+    const path = try indexedPath(0);
+    try applyFirstMutation(&state, path);
+    try driveEffect(&state, testAction(), try testResult(false));
+    const decision = try nextRequest(state);
+    const view = try decisionView(decision);
+    try std.testing.expectEqual(@as(u32, 2), view.evidence.test_count);
+    try std.testing.expectEqual(@as(u32, 0), view.evidence.latest_read.observed_test_count);
+    try resumeRequest(&state, decision, try replaceAction(path, 1));
+    var fuel: u64 = 8_000_000;
+    switch (try Machine.step(state, &fuel)) {
+        .failed => |failure| switch (failure) {
+            .authored => |authored| try std.testing.expectEqual(praxis.Failure.invalid_variant, authored),
+            else => return error.ExpectedAuthoredFailure,
+        },
+        else => return error.ExpectedRejectedAction,
+    }
+}
+
 test "same path revision after failed check and reread is admitted" {
     var state = try newState();
     defer Machine.deinitState(state);
@@ -281,7 +309,13 @@ test "same path revision after failed check and reread is admitted" {
     try applyFirstMutation(&state, path);
     try driveEffect(&state, testAction(), try testResult(false));
     try driveEffect(&state, readAction(path), try snapshot(path, 1, "first repair"));
-    try driveEffect(&state, try replaceAction(path, 1), try appliedOutcome(path, 1, 2, false));
+    const decision = try nextRequest(state);
+    const read_view = try decisionView(decision);
+    try std.testing.expectEqualStrings(try path.slice(), try read_view.evidence.latest_read.path.slice());
+    try std.testing.expectEqual(read_view.evidence.test_count, read_view.evidence.latest_read.observed_test_count);
+    try resumeRequest(&state, decision, try replaceAction(path, 1));
+    const effect = try nextRequest(state);
+    try resumeRequest(&state, effect, try appliedOutcome(path, 1, 2, false));
     const view = try decisionView(try nextRequest(state));
     try std.testing.expectEqual(@as(u32, 2), view.evidence.mutation_count);
     try std.testing.expectEqual(@as(u32, 2), try view.mutations.len());
@@ -326,10 +360,74 @@ test "denied and conflicting replacements do not mutate memory" {
         try std.testing.expectEqual(@as(u32, 0), view.evidence.mutation_count);
         try std.testing.expectEqual(@as(u32, 0), try view.mutations.len());
         try std.testing.expect(view.evidence.latest_test_passed);
+        try std.testing.expectEqual(@as(u32, @intFromBool(conflict)), view.evidence.conflict_count);
     }
 }
 
-test "six operation limit rejects the seventh replacement before effect emission" {
+test "conflict invalidates read evidence until the exact path is reread" {
+    var state = try newState();
+    defer Machine.deinitState(state);
+    const path = try indexedPath(0);
+    try driveEffect(&state, testAction(), try testResult(true));
+    try driveEffect(&state, readAction(path), try snapshot(path, 0, "old"));
+    try driveEffect(&state, try replaceAction(path, 0), praxis.ReplaceOutcome{ .conflict = .{
+        .path = path,
+        .expected_sha256 = try digest(0),
+        .actual_sha256 = try digest(1),
+    } });
+
+    const conflict_view_state = try Machine.cloneState(std.testing.allocator, state);
+    defer Machine.deinitState(conflict_view_state);
+    const conflict_view = try decisionView(try nextRequest(conflict_view_state));
+    try std.testing.expectEqual(@as(u32, 1), conflict_view.evidence.conflict_count);
+    try std.testing.expectEqual(@as(u32, 0), conflict_view.evidence.latest_read.observed_conflict_count);
+    try std.testing.expect(conflict_view.evidence.last_test_mutation_count != conflict_view.evidence.mutation_count);
+
+    var rejected = try Machine.cloneState(std.testing.allocator, state);
+    defer Machine.deinitState(rejected);
+    try expectRejectedAction(&rejected, try replaceAction(path, 0), .invalid_variant);
+
+    try driveEffect(&state, testAction(), try testResult(false));
+    try driveEffect(&state, readAction(path), try snapshot(path, 1, "external"));
+    const inspected = try Machine.cloneState(std.testing.allocator, state);
+    defer Machine.deinitState(inspected);
+    const read_view = try decisionView(try nextRequest(inspected));
+    try std.testing.expectEqualStrings(try path.slice(), try read_view.evidence.latest_read.path.slice());
+    try std.testing.expectEqual(read_view.evidence.conflict_count, read_view.evidence.latest_read.observed_conflict_count);
+    try driveEffect(&state, try replaceAction(path, 1), try appliedOutcome(path, 1, 2, false));
+    const view = try decisionView(try nextRequest(state));
+    try std.testing.expectEqual(@as(u32, 1), view.evidence.mutation_count);
+}
+
+test "multiple conflicts keep every pre-conflict read stale" {
+    var state = try newState();
+    defer Machine.deinitState(state);
+    const first = try indexedPath(0);
+    const second = try indexedPath(1);
+    try driveEffect(&state, testAction(), try testResult(true));
+    try driveEffect(&state, readAction(first), try snapshot(first, 0, "first"));
+    try driveEffect(&state, try replaceAction(first, 0), praxis.ReplaceOutcome{ .conflict = .{
+        .path = first,
+        .expected_sha256 = try digest(0),
+        .actual_sha256 = try digest(1),
+    } });
+    try driveEffect(&state, testAction(), try testResult(false));
+    try driveEffect(&state, readAction(second), try snapshot(second, 2, "second"));
+    try driveEffect(&state, try replaceAction(second, 2), praxis.ReplaceOutcome{ .conflict = .{
+        .path = second,
+        .expected_sha256 = try digest(2),
+        .actual_sha256 = try digest(3),
+    } });
+
+    var rejected = try Machine.cloneState(std.testing.allocator, state);
+    defer Machine.deinitState(rejected);
+    try expectRejectedAction(&rejected, try replaceAction(first, 0), .invalid_variant);
+    try driveEffect(&state, testAction(), try testResult(false));
+    try driveEffect(&state, readAction(first), try snapshot(first, 1, "first refreshed"));
+    try driveEffect(&state, try replaceAction(first, 1), try appliedOutcome(first, 1, 4, false));
+}
+
+test "ten operation limit rejects the eleventh replacement before effect emission" {
     var state = try newState();
     defer Machine.deinitState(state);
     const path = try indexedPath(0);
@@ -343,8 +441,8 @@ test "six operation limit rejects the seventh replacement before effect emission
         }
     }
     try driveEffect(&state, testAction(), try testResult(true));
-    try driveEffect(&state, readAction(path), try snapshot(path, 6, "sixth revision"));
-    try expectRejectedAction(&state, try replaceAction(path, 6), .invalid_variant);
+    try driveEffect(&state, readAction(path), try snapshot(path, praxis.maximum_mutation_operations, "final revision"));
+    try expectRejectedAction(&state, try replaceAction(path, praxis.maximum_mutation_operations), .invalid_variant);
 }
 
 test "four distinct path limit rejects the fifth path before effect emission" {
@@ -419,6 +517,10 @@ test "compiled repository steward preserves semantic identity and machine envelo
     try std.testing.expectEqualStrings(
         "agent.epistemics.praxis-zig-working-set.v1",
         praxis.Epistemics.semantic_identity,
+    );
+    try std.testing.expectEqualStrings(
+        "agent.epistemics.praxis-zig-working-set.lowering.v2",
+        praxis.implementation_semantic_identity,
     );
     try std.testing.expect(praxis.Compiled.Epistemics == praxis.Epistemics);
 }

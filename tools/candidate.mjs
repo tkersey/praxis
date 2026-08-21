@@ -3,15 +3,28 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fsp from "node:fs/promises";
 import path from "node:path";
+import {
+  committedFileBytesAt,
+  releaseVersion,
+  sourceManifestPath,
+  verifyCheckoutSourceManifest,
+  verifyCommittedSourceManifest,
+  versionedCandidatePath,
+  versionedConformanceRelative,
+} from "./release-identity.mjs";
+
+export const defaultCandidatePath = versionedCandidatePath;
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const conformanceRoot = path.join(repositoryRoot, "conformance/praxis-v1");
 const artifactsRoot = path.join(repositoryRoot, "zig-out/repository-steward");
 export const protectedCandidatePaths = Object.freeze([
-  "build.zig", "build.zig.zon", "src", "runtime", "fixtures", "test",
+  ".gitattributes", ".github", "build.zig", "build.zig.zon", "src", "runtime", "fixtures", "test",
   "tools", "package.json", "conformance/praxis-v1/reference-stack.lock.json",
   "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/README.md",
   "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/result.json",
+  versionedConformanceRelative,
+  `:(exclude)${versionedConformanceRelative}/candidate.json`,
 ]);
 
 function git(args, { allowFailure = false } = {}) {
@@ -31,7 +44,24 @@ function requireDigest(value, label) {
   return value;
 }
 
+const candidateKeys = Object.freeze([
+  "format", "praxisCommit", "applicationId", "applicationWasmSha256",
+  "decisionContractDigest", "bindingManifestSha256", "workspaceAdapterSha256",
+  "openaiAdapterSha256", "codecsSha256", "referenceStackLockSha256",
+  "sourceManifestSha256",
+  "deterministicReceiptSha256", "retryReceiptSha256", "replayReceiptSha256",
+  "measureReceiptSha256",
+].sort());
+
+export function assertCandidateShape(candidate) {
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) throw new Error("candidate must be an object");
+  if (candidate.format !== "praxis-candidate/v1" || !/^[0-9a-f]{40}$/.test(candidate.praxisCommit)) throw new Error("candidate format is invalid");
+  if (JSON.stringify(Object.keys(candidate).sort()) !== JSON.stringify(candidateKeys)) throw new Error("candidate fields are not exact");
+  return candidate;
+}
+
 export async function candidateInputs() {
+  await verifyCheckoutSourceManifest();
   const [binding, deterministic, retry, replay, measure] = await Promise.all([
     json(path.join(artifactsRoot, "repository-steward.binding-manifest.json")),
     json(path.join(conformanceRoot, "receipts/deterministic.json")),
@@ -40,9 +70,13 @@ export async function candidateInputs() {
     json(path.join(conformanceRoot, "receipts/measure.json")),
   ]);
   const proofCommit = deterministic.candidate_commit;
+  assert.equal(binding.applicationVersion, releaseVersion, "binding application version differs from package release version");
+  const applicationWasmSha256 = await digestFile(path.join(artifactsRoot, "repository-steward.world.wasm"));
   for (const receipt of [deterministic, retry, replay, measure]) {
+    if (receipt.source_identity !== "git-commit" || receipt.source_manifest_sha256 !== null) throw new Error(`${receipt.mode} receipt source identity is invalid`);
     if (!/^[0-9a-f]{40}$/.test(receipt.candidate_commit)) throw new Error(`${receipt.mode} receipt candidate is invalid`);
     if (receipt.application_id !== binding.applicationId) throw new Error(`${receipt.mode} application identity mismatch`);
+    if (receipt.application_wasm_sha256 !== applicationWasmSha256) throw new Error(`${receipt.mode} application WASM identity mismatch`);
   }
   for (const receipt of [retry, replay, measure]) {
     const diff = git(["diff", "--quiet", receipt.candidate_commit, "HEAD", "--", ...protectedCandidatePaths], { allowFailure: true });
@@ -58,7 +92,7 @@ export async function candidateInputs() {
   return { binding, deterministic, retry, replay, measure };
 }
 
-export async function freezeCandidate({ output = path.join(conformanceRoot, "candidate.json") } = {}) {
+export async function freezeCandidate({ output = defaultCandidatePath } = {}) {
   if (git(["status", "--porcelain=v1", "--untracked-files=all"]).stdout !== "") throw new Error("candidate freeze requires a clean working tree");
   const inputs = await candidateInputs();
   const candidate = {
@@ -72,19 +106,21 @@ export async function freezeCandidate({ output = path.join(conformanceRoot, "can
     openaiAdapterSha256: await digestFile(path.join(repositoryRoot, "runtime/openai-adapter.mjs")),
     codecsSha256: await digestFile(path.join(repositoryRoot, "runtime/codecs.mjs")),
     referenceStackLockSha256: await digestFile(path.join(conformanceRoot, "reference-stack.lock.json")),
+    sourceManifestSha256: await digestFile(sourceManifestPath),
     deterministicReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/deterministic.json")),
     retryReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/retry.json")),
     replayReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/replay.json")),
     measureReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/measure.json")),
   };
+  await fsp.mkdir(path.dirname(output), { recursive: true });
   await fsp.writeFile(output, `${JSON.stringify(candidate, null, 2)}\n`, { flag: "wx" });
   return candidate;
 }
 
 export async function verifyCandidate(candidatePath) {
-  const candidate = await json(path.resolve(candidatePath));
-  if (candidate.format !== "praxis-candidate/v1" || !/^[0-9a-f]{40}$/.test(candidate.praxisCommit)) throw new Error("candidate format is invalid");
+  const candidate = assertCandidateShape(await json(path.resolve(candidatePath)));
   const inputs = await candidateInputs();
+  await verifyCommittedSourceManifest(candidate.praxisCommit, candidate.sourceManifestSha256);
   const expected = {
     applicationId: inputs.binding.applicationId,
     applicationWasmSha256: await digestFile(path.join(artifactsRoot, "repository-steward.world.wasm")),
@@ -94,12 +130,21 @@ export async function verifyCandidate(candidatePath) {
     openaiAdapterSha256: await digestFile(path.join(repositoryRoot, "runtime/openai-adapter.mjs")),
     codecsSha256: await digestFile(path.join(repositoryRoot, "runtime/codecs.mjs")),
     referenceStackLockSha256: await digestFile(path.join(conformanceRoot, "reference-stack.lock.json")),
+    sourceManifestSha256: await digestFile(sourceManifestPath),
     deterministicReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/deterministic.json")),
     retryReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/retry.json")),
     replayReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/replay.json")),
     measureReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/measure.json")),
   };
   for (const [key, value] of Object.entries(expected)) if (candidate[key] !== value) throw new Error(`candidate ${key} mismatch`);
+  for (const [field, relative] of [
+    ["deterministicReceiptSha256", "conformance/praxis-v1/receipts/deterministic.json"],
+    ["retryReceiptSha256", "conformance/praxis-v1/receipts/retry.json"],
+    ["replayReceiptSha256", "conformance/praxis-v1/receipts/replay.json"],
+    ["measureReceiptSha256", "conformance/praxis-v1/receipts/measure.json"],
+  ]) {
+    if (createHash("sha256").update(committedFileBytesAt(repositoryRoot, candidate.praxisCommit, relative)).digest("hex") !== candidate[field]) throw new Error(`candidate ${field} differs from committed source`);
+  }
   const protectedDiff = git(["diff", "--quiet", candidate.praxisCommit, "HEAD", "--", ...protectedCandidatePaths], { allowFailure: true });
   if (protectedDiff.status !== 0) throw new Error("candidate protected files changed after freeze");
   return Object.freeze(candidate);

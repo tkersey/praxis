@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import {
   admitWorkspacePolicy,
   preflight,
@@ -10,6 +11,10 @@ import {
   resolve,
   _workspaceInternals,
 } from "../runtime/workspace-adapter.mjs";
+import { _releaseInternals, releaseCandidatePath, releaseVersion, successorReleaseFormat } from "../tools/build-release.mjs";
+import { assertCandidateShape, defaultCandidatePath, protectedCandidatePaths } from "../tools/candidate.mjs";
+import { correctionVerifierPaths } from "../tools/check-corrections.mjs";
+import { sourceReceiptIdentityAt } from "../tools/release-identity.mjs";
 
 const roots = [];
 afterEach(async () => { while (roots.length > 0) await rm(roots.pop(), { recursive: true, force: true }); });
@@ -56,6 +61,150 @@ function request(operation, payload = {}, requestId = "1".repeat(64)) {
 }
 
 describe("workspace policy", () => {
+  test("source identity rejects an enclosing Git repository", async () => {
+    const parent = await mkdtemp(join(tmpdir(), "praxis-source-parent-")); roots.push(parent);
+    await writeFile(join(parent, "parent.txt"), "parent\n");
+    expect(spawnSync("git", ["init", "-q"], { cwd: parent }).status).toBe(0);
+    expect(spawnSync("git", ["add", "parent.txt"], { cwd: parent }).status).toBe(0);
+    expect(spawnSync("git", ["-c", "user.name=Praxis Test", "-c", "user.email=praxis@example.invalid", "commit", "-qm", "parent"], { cwd: parent }).status).toBe(0);
+    const nested = join(parent, "exported-praxis");
+    const candidatePath = join(nested, "candidate.json");
+    const manifestPath = join(nested, "source-manifest.json");
+    const sourcePath = join(nested, "source.txt");
+    await mkdir(nested);
+    await writeFile(sourcePath, "source\n");
+    const manifestBytes = `${JSON.stringify({
+      format: "praxis-source-manifest/v1",
+      export_ignored_paths: [],
+      entries: [{ path: "source.txt", mode: "100644", sha256: digest("source\n") }],
+    }, null, 2)}\n`;
+    await writeFile(manifestPath, manifestBytes);
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(manifestBytes) })}\n`);
+    expect(await sourceReceiptIdentityAt(nested, candidatePath, manifestPath, digest(manifestBytes))).toEqual({
+      source_identity: "export-manifest",
+      candidate_commit: null,
+      source_manifest_sha256: digest(manifestBytes),
+    });
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: "f".repeat(40), sourceManifestSha256: digest(manifestBytes) })}\n`);
+    expect((await sourceReceiptIdentityAt(nested, candidatePath, manifestPath, digest(manifestBytes))).candidate_commit).toBeNull();
+    const ignoredBytes = `${JSON.stringify({
+      format: "praxis-source-manifest/v1",
+      export_ignored_paths: ["source.txt"],
+      entries: [{ path: "parent-marker.txt", mode: "100644", sha256: digest("marker\n") }],
+    }, null, 2)}\n`;
+    await writeFile(join(nested, "parent-marker.txt"), "marker\n");
+    await writeFile(manifestPath, ignoredBytes);
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(ignoredBytes) })}\n`);
+    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath, digest(ignoredBytes))).rejects.toThrow(/export-ignored source path is present/);
+    await writeFile(manifestPath, manifestBytes);
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(manifestBytes) })}\n`);
+    await rm(join(nested, "parent-marker.txt"));
+    await mkdir(join(nested, "src/release"), { recursive: true });
+    await writeFile(join(nested, "src/release/payload"), "unexpected\n");
+    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath, digest(manifestBytes))).rejects.toThrow(/exported source inventory differs/);
+    await rm(join(nested, "src"), { recursive: true });
+    await writeFile(sourcePath, "modified\n");
+    await expect(sourceReceiptIdentityAt(nested, candidatePath, manifestPath, digest(manifestBytes))).rejects.toThrow(/exported source bytes differ/);
+  });
+
+  test("no-Git source identity requires an external manifest digest", async () => {
+    const root = await mkdtemp(join(tmpdir(), "praxis-source-export-")); roots.push(root);
+    const candidatePath = join(root, "candidate.json"); const manifestPath = join(root, "source-manifest.json");
+    await writeFile(join(root, "source.txt"), "source\n");
+    const manifestBytes = `${JSON.stringify({ format: "praxis-source-manifest/v1", export_ignored_paths: [], entries: [{ path: "source.txt", mode: "100644", sha256: digest("source\n") }] }, null, 2)}\n`;
+    await writeFile(manifestPath, manifestBytes);
+    await writeFile(candidatePath, `${JSON.stringify({ format: "praxis-candidate/v1", praxisCommit: baseRevision, sourceManifestSha256: digest(manifestBytes) })}\n`);
+    await expect(sourceReceiptIdentityAt(root, candidatePath, manifestPath)).rejects.toThrow(/authenticated source manifest digest is required/);
+    expect((await sourceReceiptIdentityAt(root, candidatePath, manifestPath, digest(manifestBytes))).source_identity).toBe("export-manifest");
+  });
+
+  test("Git commit identity rejects dirty source", async () => {
+    const root = await mkdtemp(join(tmpdir(), "praxis-source-git-")); roots.push(root);
+    await writeFile(join(root, "source.txt"), "source\n");
+    expect(spawnSync("git", ["init", "-q"], { cwd: root }).status).toBe(0);
+    expect(spawnSync("git", ["add", "source.txt"], { cwd: root }).status).toBe(0);
+    expect(spawnSync("git", ["-c", "user.name=Praxis Test", "-c", "user.email=praxis@example.invalid", "commit", "-qm", "source"], { cwd: root }).status).toBe(0);
+    const clean = await sourceReceiptIdentityAt(root, join(root, "unused-candidate.json"), join(root, "unused-manifest.json"));
+    expect(clean.source_identity).toBe("git-commit");
+    expect(clean.candidate_commit).toMatch(/^[0-9a-f]{40}$/);
+    await mkdir(join(root, "zig-pkg"));
+    await writeFile(join(root, "zig-pkg/generated"), "generated\n");
+    expect((await sourceReceiptIdentityAt(root, join(root, "unused-candidate.json"), join(root, "unused-manifest.json"))).source_identity).toBe("git-commit");
+    await writeFile(join(root, "source.txt"), "modified\n");
+    await expect(sourceReceiptIdentityAt(root, join(root, "unused-candidate.json"), join(root, "unused-manifest.json"))).rejects.toThrow(/clean source tree/);
+  });
+
+  test("correction inventory rejects a missing verifier", async () => {
+    const root = await mkdtemp(join(tmpdir(), "praxis-corrections-")); roots.push(root);
+    await mkdir(join(root, "covered/reproducer"), { recursive: true });
+    await writeFile(join(root, "covered/reproducer/verify.mjs"), "export {};\n");
+    expect((await correctionVerifierPaths(root)).map(({ name }) => name)).toEqual(["covered"]);
+    await mkdir(join(root, "missing"));
+    await expect(correctionVerifierPaths(root)).rejects.toThrow(/correction verifier is missing: missing/);
+  });
+
+  test("release builder derives the current package identity", () => {
+    expect(releaseVersion).toBe("1.0.6");
+    expect(releaseCandidatePath).toEndWith("/conformance/praxis-v1.0.6/candidate.json");
+    expect(defaultCandidatePath).toBe(releaseCandidatePath);
+    expect(successorReleaseFormat).toBe("praxis-successor-artifact-release/v1");
+    expect(protectedCandidatePaths).toContain("conformance/praxis-v1.0.6");
+    expect(protectedCandidatePaths).toContain(":(exclude)conformance/praxis-v1.0.6/candidate.json");
+  });
+
+  test("source candidate overlay is byte-deterministic", () => {
+    const emptyArchive = Buffer.alloc(1024);
+    const contents = Buffer.from("{\"candidate\":true}\n");
+    const name = "praxis-1.0.6/conformance/praxis-v1.0.6/candidate.json";
+    const first = _releaseInternals.appendTarFile(emptyArchive, name, contents);
+    const second = _releaseInternals.appendTarFile(emptyArchive, name, contents);
+    expect(first.equals(second)).toBeTrue();
+    expect(first.subarray(0, name.length).toString("ascii")).toBe(name);
+    expect(first.subarray(136, 148).toString("ascii")).toBe("00000000000\0");
+    expect(first.subarray(512, 512 + contents.length).equals(contents)).toBeTrue();
+  });
+
+  test("release inventory rejects retired same-prefix assets", () => {
+    const prefix = `praxis-v${releaseVersion}`;
+    const expected = [
+      `${prefix}-source.tar.gz`,
+      `${prefix}-runtime.tar.gz`,
+      `${prefix}-artifacts.tar.gz`,
+      `${prefix}-candidate.json`,
+      `${prefix}-successor-receipt.json`,
+    ];
+    expect(_releaseInternals.validateReleaseAssetInventory(
+      ["unrelated.txt", ...expected, `${prefix}-checksums.txt`],
+      expected,
+    )).toEqual([...expected].sort());
+    expect(() => _releaseInternals.validateReleaseAssetInventory(
+      [...expected, `${prefix}-live-receipt.redacted.json`],
+      expected,
+    )).toThrow(/unexpected release assets: .*live-receipt/);
+  });
+
+  test("candidate admission rejects unknown release claims", async () => {
+    const candidate = {
+      format: "praxis-candidate/v1",
+      praxisCommit: "a".repeat(40),
+      applicationId: "b".repeat(64),
+      applicationWasmSha256: "c".repeat(64),
+      decisionContractDigest: "d".repeat(64),
+      bindingManifestSha256: "e".repeat(64),
+      workspaceAdapterSha256: "f".repeat(64),
+      openaiAdapterSha256: "0".repeat(64),
+      codecsSha256: "1".repeat(64),
+      referenceStackLockSha256: "2".repeat(64),
+      sourceManifestSha256: "7".repeat(64),
+      deterministicReceiptSha256: "3".repeat(64),
+      retryReceiptSha256: "4".repeat(64),
+      replayReceiptSha256: "5".repeat(64),
+      measureReceiptSha256: "6".repeat(64),
+    };
+    expect(() => assertCandidateShape(candidate)).not.toThrow();
+    expect(() => assertCandidateShape({ ...candidate, publication_claimed: true })).toThrow(/fields are not exact/);
+  });
+
   test("v1.0.5 correction evidence is exact and executable", async () => {
     const correction = JSON.parse(await readFile(new URL("../conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/result.json", import.meta.url), "utf8"));
     expect(correction).toEqual({
@@ -79,6 +228,40 @@ describe("workspace policy", () => {
       maximum_changed_files: _workspaceInternals.compiledLimits.maximumChangedFiles,
       machine_abi: 2,
       application_abi: 1,
+      effect_protocol: 1,
+    });
+  });
+
+  test("v1.0.6 read-freshness correction evidence is exact", async () => {
+    const correction = JSON.parse(await readFile(new URL("../conformance/praxis-v1.0.6/obstructions/read-freshness-observability/result.json", import.meta.url), "utf8"));
+    expect(correction).toEqual({
+      format: "praxis-obstruction-correction/v1",
+      owner: "parent_application_obstruction",
+      failed_release: "v1.0.5",
+      failed_definition_blob_oid: "bbabb5ef6b1bf22553da47ecd25f39c0ebc33218",
+      failed_epistemics_blob_oid: "a5af1419fd150124d9201ae275a7a0c9b98a6756",
+      failed_codec_blob_oid: "aa79ae42421e2f59fb660ffb7eb7bcb8c3b84ae3",
+      failed_candidate_blob_oid: "57b3c7ee379403af4587c6b8cde7ac23d9743aee",
+      failed_decision_contract_digest: "822764fac3476f73666a2439422486d557bd4aaf0defcea76dade3c61cd1fc5e",
+      failed_instruction_requires_fresh_read: true,
+      failed_decision_view_exposes_read_epoch: false,
+      successor_read_evidence_typed: true,
+      successor_read_evidence_contains_path: true,
+      successor_read_evidence_contains_observed_test_count: true,
+      successor_changed_path_revision_requires_current_read_evidence: true,
+      successor_new_check_stales_prior_read_evidence: true,
+      successor_conflict_invalidates_read_evidence: true,
+      successor_conflict_invalidates_test_evidence: true,
+      successor_model_instructions_name_read_evidence: true,
+      successor_implementation_semantic_identity: "agent.epistemics.praxis-zig-working-set.lowering.v2",
+      successor_application_id: "d9c7744e1ec5e662ff3830dc2d505b4a5777c89cdac8a29d2d8a9da341701ca5",
+      successor_decision_contract_digest: "b9b5d8e66f12aacc476951cf5eab5bab2e8cca8be5e9117346a6d744cb9f63e0",
+      maximum_replacements: 10,
+      maximum_changed_files: 4,
+      machine_abi: 2,
+      machine_state: "ABL_RNF2",
+      application_abi: 1,
+      frame: 1,
       effect_protocol: 1,
     });
   });

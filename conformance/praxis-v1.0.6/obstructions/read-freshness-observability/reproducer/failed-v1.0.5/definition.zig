@@ -197,12 +197,6 @@ pub const ReplaceSummary = union(enum) {
 pub const Documents = boundary.Vector(DocumentSnapshot, maximum_documents);
 pub const Mutations = boundary.Vector(MutationSummary, maximum_mutation_operations);
 
-pub const ReadEvidence = struct {
-    path: Path,
-    observed_test_count: u32,
-    observed_conflict_count: u32,
-};
-
 pub const Memory = struct {
     listing: ?ListResult,
     documents: Documents,
@@ -215,8 +209,6 @@ pub const Memory = struct {
     mutation_count: u32,
     last_test_mutation_count: u32,
     test_count: u32,
-    latest_read: ReadEvidence,
-    conflict_count: u32,
 };
 
 pub const DecisionEvidence = struct {
@@ -225,8 +217,6 @@ pub const DecisionEvidence = struct {
     mutation_count: u32,
     last_test_mutation_count: u32,
     test_count: u32,
-    latest_read: ReadEvidence,
-    conflict_count: u32,
 };
 
 pub const DecisionView = struct {
@@ -254,14 +244,7 @@ pub const instructions =
     "replacement. Replace only files marked writable, and use the SHA-256 from the " ++
     "latest read of that exact path. After every newly applied replacement, run the " ++
     "full check before proposing another replacement. You may revise a previously " ++
-    "changed path only after a fresh check and a fresh read. DecisionView.evidence " ++
-    "records the latest read path and its observed test and conflict counts. A " ++
-    "changed-path revision is admissible only when that path matches and both " ++
-    "observed counts equal the current counts. After any replacement conflict, the " ++
-    "conflict count advances and invalidates the full-check epoch. Before any later " ++
-    "replacement, including a new path, run a fresh full check and then reread that " ++
-    "exact path at the current test and conflict counts. Once the path and both " ++
-    "counts match, do not reread unchanged bytes; propose the corrected replacement.\n\n" ++
+    "changed path only after a fresh check and a fresh read.\n\n" ++
     mutation_budget_instruction ++
     "Return final only after at least one applied replacement and a fresh passing " ++
     "full check after the latest replacement. Report exactly the changed paths " ++
@@ -271,7 +254,7 @@ pub const instructions =
 
 pub const Definition = agent.define(.{
     .name = "repository-steward",
-    .version = "1.0.6",
+    .version = "1.0.5",
     .instructions = instructions,
     .Goal = Goal,
     .Action = Action,
@@ -327,7 +310,6 @@ pub const Definition = agent.define(.{
 });
 
 pub const Strategy = agent.strategy.react(.{});
-pub const implementation_semantic_identity = "agent.epistemics.praxis-zig-working-set.lowering.v2";
 pub const Epistemics = agent.epistemics.custom(.{
     .semantic_identity = "agent.epistemics.praxis-zig-working-set.v1",
     .config = .{},

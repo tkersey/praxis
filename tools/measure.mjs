@@ -4,15 +4,10 @@ import { spawnSync } from "node:child_process";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { runDeterministic } from "./deterministic.mjs";
+import { sourceReceiptIdentity } from "./release-identity.mjs";
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
-
-function head() {
-  const result = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" });
-  if (result.status !== 0) throw new Error(result.stderr);
-  return result.stdout.trim();
-}
 
 export async function proveMeasurements(options = {}) {
   const runId = options.runId ?? `measure-${Date.now()}`;
@@ -47,7 +42,7 @@ export async function proveMeasurements(options = {}) {
   const receipt = {
     praxis_format: 1,
     mode: "measure",
-    candidate_commit: head(),
+    ...await sourceReceiptIdentity(),
     application_id: proof.bindingManifest.applicationId,
     application_wasm_sha256: sha256(proof.wasmBytes),
     measurements,
