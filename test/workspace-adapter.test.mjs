@@ -67,7 +67,22 @@ describe("workspace policy", () => {
   });
 
   test("candidate admission rejects unknown release claims", async () => {
-    const candidate = JSON.parse(await readFile(new URL("../conformance/praxis-v1.0.6/candidate.json", import.meta.url), "utf8"));
+    const candidate = {
+      format: "praxis-candidate/v1",
+      praxisCommit: "a".repeat(40),
+      applicationId: "b".repeat(64),
+      applicationWasmSha256: "c".repeat(64),
+      decisionContractDigest: "d".repeat(64),
+      bindingManifestSha256: "e".repeat(64),
+      workspaceAdapterSha256: "f".repeat(64),
+      openaiAdapterSha256: "0".repeat(64),
+      codecsSha256: "1".repeat(64),
+      referenceStackLockSha256: "2".repeat(64),
+      deterministicReceiptSha256: "3".repeat(64),
+      retryReceiptSha256: "4".repeat(64),
+      replayReceiptSha256: "5".repeat(64),
+      measureReceiptSha256: "6".repeat(64),
+    };
     expect(() => assertCandidateShape(candidate)).not.toThrow();
     expect(() => assertCandidateShape({ ...candidate, publication_claimed: true })).toThrow(/fields are not exact/);
   });

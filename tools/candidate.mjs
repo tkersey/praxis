@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { versionedCandidatePath } from "./release-identity.mjs";
+import { releaseVersion, versionedCandidatePath } from "./release-identity.mjs";
 
 export const defaultCandidatePath = versionedCandidatePath;
 
@@ -59,6 +59,7 @@ export async function candidateInputs() {
     json(path.join(conformanceRoot, "receipts/measure.json")),
   ]);
   const proofCommit = deterministic.candidate_commit;
+  assert.equal(binding.applicationVersion, releaseVersion, "binding application version differs from package release version");
   for (const receipt of [deterministic, retry, replay, measure]) {
     if (!/^[0-9a-f]{40}$/.test(receipt.candidate_commit)) throw new Error(`${receipt.mode} receipt candidate is invalid`);
     if (receipt.application_id !== binding.applicationId) throw new Error(`${receipt.mode} application identity mismatch`);
