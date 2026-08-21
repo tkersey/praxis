@@ -1,16 +1,16 @@
 {
   "format": "praxis-candidate/v1",
-  "praxisCommit": "dd26baac4459f22c04818f532ccaeea4255d486a",
-  "applicationId": "729ba44a81d4c7492e9ba1ed5c8bc936e449c7ab5160e811f68fe88f96ca3f1a",
-  "applicationWasmSha256": "7fc72beb4c372380bd5b110456bf5724b58eece0ca8a876cb9158324da0a74f5",
-  "decisionContractDigest": "c11fb0d2fee123eecb0e54a791cc6f433d55f888db8b1a3e02583901fbf61831",
-  "bindingManifestSha256": "5e07c6176ef9b696e9bb2e31605766895c2cbb5c327da681570595a840005176",
+  "praxisCommit": "5b95e1e2f140f8a038d12a1832dd8d75f0bf62dd",
+  "applicationId": "5c48cd096506cc320fed55f67406cf79a82241cc60dc43d00313ae31fe968aee",
+  "applicationWasmSha256": "18eaa2159942e578afd65620cae29fcac68b44ed16a07d853cb87fd3e17a341c",
+  "decisionContractDigest": "ee1d825d5c99ed3cbe8e1a2fef4dfcf00a812a1531a885d9ac268dde754ee811",
+  "bindingManifestSha256": "de2d0427c2610fec3c2f5116f2c4509100484d1d6c160b73468938618b5ab953",
   "workspaceAdapterSha256": "527930ea1e7b997b2f761e5ca4e082b600dc786d7fb458bb3c9011eed0e3d7e4",
   "openaiAdapterSha256": "dd0dca92a4fb04cb059ce6839689aa42ff8a8f6d84664407c59b5ef35b6f69ad",
   "codecsSha256": "f73c15ee12a37b12000a5c9f1a4e9ff45ee72f2d80dee4cc789f696188a42510",
   "referenceStackLockSha256": "2faa97b6ea400bd5ede68ff0db1d5d463deec104253516251990dbc6cf254d12",
-  "deterministicReceiptSha256": "b98e9432f6c210c766fcbab6f15d5065921338ee859f70d9ef2fd469c8c33a1e",
-  "retryReceiptSha256": "b73fdae10037050a54718f64b625a0ef8367ef2e0e47eafb48e2fa7959e73998",
-  "replayReceiptSha256": "970dcb11187f3801d41e5b616de26588603b32f7535afc74073318fe41db7720",
-  "measureReceiptSha256": "32ddf8f6f890ebd44b133f7c14272003ed728b1663b3ece43053e97e518e51d3"
+  "deterministicReceiptSha256": "815c9ca84cbaceceaa4b61612ea2c6eca94e6b8ccfb3cb00849acf0dc3dea0ea",
+  "retryReceiptSha256": "18b52c408fff6ae6edec5cd440a67f665e0dbeb90dcec48c1c8b9568b6f3e724",
+  "replayReceiptSha256": "c8db4af9fd06167369b9b3f4167e5ead432e70d65bd9290ed5d415cd9234d5e5",
+  "measureReceiptSha256": "8a52b5eb738570b8b6a974f72a8891670710eb071d2d694f1428bdb28a4ebd8b"
 }
