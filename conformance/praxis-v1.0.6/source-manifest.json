@@ -358,12 +358,12 @@
     {
       "path": "test/workspace-adapter.test.mjs",
       "mode": "100644",
-      "sha256": "b43aa7928cabaa560106118a1f4d7e2dd4193203fb59b35daaa12eb27d4920f3"
+      "sha256": "4c60e899300067792f77a3fd8425d3371dcf1c043f75ba7fd1c38d2b28e83db4"
     },
     {
       "path": "tools/build-release.mjs",
       "mode": "100644",
-      "sha256": "3b5ff0c77ae807912f21665f47d756f021d9de7c175aadb64ce7e8eedcac67ae"
+      "sha256": "b25854bb41730384ebfec891649220870955e31f9fc5bc8dc9c64530856e5bfd"
     },
     {
       "path": "tools/candidate.mjs",

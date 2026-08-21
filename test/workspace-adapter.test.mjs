@@ -11,7 +11,7 @@ import {
   resolve,
   _workspaceInternals,
 } from "../runtime/workspace-adapter.mjs";
-import { releaseCandidatePath, releaseVersion, successorReleaseFormat } from "../tools/build-release.mjs";
+import { _releaseInternals, releaseCandidatePath, releaseVersion, successorReleaseFormat } from "../tools/build-release.mjs";
 import { assertCandidateShape, defaultCandidatePath, protectedCandidatePaths } from "../tools/candidate.mjs";
 import { correctionVerifierPaths } from "../tools/check-corrections.mjs";
 import { sourceReceiptIdentityAt } from "../tools/release-identity.mjs";
@@ -136,6 +136,18 @@ describe("workspace policy", () => {
     expect(successorReleaseFormat).toBe("praxis-successor-artifact-release/v1");
     expect(protectedCandidatePaths).toContain("conformance/praxis-v1.0.6");
     expect(protectedCandidatePaths).toContain(":(exclude)conformance/praxis-v1.0.6/candidate.json");
+  });
+
+  test("source candidate overlay is byte-deterministic", () => {
+    const emptyArchive = Buffer.alloc(1024);
+    const contents = Buffer.from("{\"candidate\":true}\n");
+    const name = "praxis-1.0.6/conformance/praxis-v1.0.6/candidate.json";
+    const first = _releaseInternals.appendTarFile(emptyArchive, name, contents);
+    const second = _releaseInternals.appendTarFile(emptyArchive, name, contents);
+    expect(first.equals(second)).toBeTrue();
+    expect(first.subarray(0, name.length).toString("ascii")).toBe(name);
+    expect(first.subarray(136, 148).toString("ascii")).toBe("00000000000\0");
+    expect(first.subarray(512, 512 + contents.length).equals(contents)).toBeTrue();
   });
 
   test("candidate admission rejects unknown release claims", async () => {

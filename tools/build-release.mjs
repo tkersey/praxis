@@ -30,6 +30,43 @@ async function tarDirectory(source, target) {
   command("tar", ["-czf", target, "--no-xattrs", "--no-mac-metadata", "-C", source, "."]);
 }
 
+function tarOctal(value, width) {
+  const encoded = value.toString(8);
+  if (encoded.length > width - 1) throw new Error("USTAR numeric value exceeds field capacity");
+  return `${encoded.padStart(width - 1, "0")}\0`;
+}
+
+function appendTarFile(archive, name, contents) {
+  if (!Buffer.isBuffer(archive) || !Buffer.isBuffer(contents) || !/^[ -~]+$/.test(name) || Buffer.byteLength(name) > 100) throw new Error("deterministic USTAR entry is invalid");
+  let offset = 0;
+  while (offset + 512 <= archive.length) {
+    const header = archive.subarray(offset, offset + 512);
+    if (header.every((byte) => byte === 0)) break;
+    if ((header[124] & 0x80) !== 0) throw new Error("base-256 TAR sizes are unsupported");
+    const encodedSize = header.subarray(124, 136).toString("ascii").split("\0", 1)[0].trim();
+    const size = encodedSize === "" ? 0 : Number.parseInt(encodedSize, 8);
+    if (!Number.isSafeInteger(size) || size < 0) throw new Error("TAR entry size is invalid");
+    offset += 512 + Math.ceil(size / 512) * 512;
+  }
+  const header = Buffer.alloc(512);
+  header.write(name, 0, 100, "ascii");
+  header.write(tarOctal(0o644, 8), 100, 8, "ascii");
+  header.write(tarOctal(0, 8), 108, 8, "ascii");
+  header.write(tarOctal(0, 8), 116, 8, "ascii");
+  header.write(tarOctal(contents.length, 12), 124, 12, "ascii");
+  header.write(tarOctal(0, 12), 136, 12, "ascii");
+  header.fill(0x20, 148, 156);
+  header[156] = 0x30;
+  header.write("ustar\0", 257, 6, "ascii");
+  header.write("00", 263, 2, "ascii");
+  const checksum = header.reduce((sum, byte) => sum + byte, 0);
+  header.write(`${checksum.toString(8).padStart(6, "0")}\0 `, 148, 8, "ascii");
+  const padding = Buffer.alloc((512 - (contents.length % 512)) % 512);
+  return Buffer.concat([archive.subarray(0, offset), header, contents, padding, Buffer.alloc(1024)]);
+}
+
+export const _releaseInternals = Object.freeze({ appendTarFile });
+
 export async function buildRelease({ outputRoot = path.join(repositoryRoot, "release") } = {}) {
   if (command("git", ["status", "--porcelain=v1", "--untracked-files=all"]).stdout !== "") throw new Error("successor release build requires a clean worktree");
   command(process.execPath, ["tools/check-corrections.mjs"], { env: { ...process.env, PRAXIS_REQUIRE_HISTORICAL_GIT: "1" } });
@@ -40,12 +77,8 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
     const sourceArchive = path.join(outputRoot, `${prefix}-source.tar.gz`);
     const sourceTar = path.join(temporary, "source.tar");
     command("git", ["archive", "--format=tar", `--prefix=praxis-${releaseVersion}/`, "-o", sourceTar, candidate.praxisCommit]);
-    const sourceOverlay = path.join(temporary, "source-overlay");
     const candidateEntry = `praxis-${releaseVersion}/${versionedConformanceRelative}/candidate.json`;
-    const candidateOverlay = path.join(sourceOverlay, candidateEntry);
-    await mkdir(path.dirname(candidateOverlay), { recursive: true });
-    await cp(versionedCandidatePath, candidateOverlay);
-    command("tar", ["-rf", sourceTar, "-C", sourceOverlay, candidateEntry]);
+    await writeFile(sourceTar, appendTarFile(await readFile(sourceTar), candidateEntry, await readFile(versionedCandidatePath)));
     const compressedSource = command("gzip", ["-n", "-c", sourceTar], { binary: true }).stdout;
     await writeFile(sourceArchive, compressedSource);
     const runtimeRoot = path.join(temporary, "runtime", `praxis-${releaseVersion}-runtime`);
