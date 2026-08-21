@@ -49,17 +49,36 @@ export async function createSourceManifestAt(root = repositoryRoot) {
   const listed = spawnSync("git", ["ls-files", "--stage", "-z"], { cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
   if (listed.error || listed.status !== 0) throw new Error("source manifest requires an exact Git checkout");
   const excluded = new Set(sourceManifestExcludedPaths);
-  const entries = [];
+  const tracked = [];
   for (const record of listed.stdout.split("\0").filter(Boolean)) {
     const separator = record.indexOf("\t");
     if (separator < 0) throw new Error("Git source inventory is malformed");
     const [mode, , stage] = record.slice(0, separator).split(" ");
     const relative = record.slice(separator + 1);
     if (stage !== "0" || !["100644", "100755"].includes(mode)) throw new Error(`unsupported Git source entry: ${relative}`);
-    if (!excluded.has(relative)) entries.push(await sourceEntry(root, relative, mode));
+    tracked.push({ mode, relative });
   }
+  const attributes = spawnSync("git", ["check-attr", "-z", "--stdin", "export-ignore"], {
+    cwd: root,
+    encoding: "utf8",
+    input: `${tracked.map(({ relative }) => relative).join("\0")}\0`,
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  if (attributes.error || attributes.status !== 0) throw new Error("Git export-ignore inventory is unavailable");
+  const attributeFields = attributes.stdout.split("\0").filter((value, index, values) => value !== "" || index < values.length - 1);
+  if (attributeFields.length !== tracked.length * 3) throw new Error("Git export-ignore inventory is malformed");
+  const exportIgnoredPaths = [];
+  const entries = [];
+  for (let index = 0; index < tracked.length; index += 1) {
+    const { mode, relative } = tracked[index];
+    const [attributePath, attributeName, attributeValue] = attributeFields.slice(index * 3, index * 3 + 3);
+    if (attributePath !== relative || attributeName !== "export-ignore") throw new Error("Git export-ignore inventory path mismatch");
+    if (attributeValue !== "unspecified" && attributeValue !== "unset") exportIgnoredPaths.push(relative);
+    else if (!excluded.has(relative)) entries.push(await sourceEntry(root, relative, mode));
+  }
+  exportIgnoredPaths.sort((left, right) => Buffer.from(left).compare(Buffer.from(right)));
   entries.sort((left, right) => Buffer.from(left.path).compare(Buffer.from(right.path)));
-  return { format: "praxis-source-manifest/v1", entries };
+  return { format: "praxis-source-manifest/v1", export_ignored_paths: exportIgnoredPaths, entries };
 }
 
 async function currentSourcePaths(root, excluded, relativeRoot = "") {
@@ -82,9 +101,15 @@ export async function verifySourceManifestAt(root, manifestPath, expectedDigest,
   const bytes = await readFile(manifestPath);
   if (sha256(bytes) !== expectedDigest) throw new Error("source manifest digest mismatch");
   const manifest = JSON.parse(bytes);
-  if (manifest?.format !== "praxis-source-manifest/v1" || JSON.stringify(Object.keys(manifest).sort()) !== JSON.stringify(["entries", "format"])) throw new Error("source manifest format is invalid");
+  if (manifest?.format !== "praxis-source-manifest/v1" || JSON.stringify(Object.keys(manifest).sort()) !== JSON.stringify(["entries", "export_ignored_paths", "format"])) throw new Error("source manifest format is invalid");
   if (!Array.isArray(manifest.entries) || manifest.entries.length === 0 || manifest.entries.length > 1024) throw new Error("source manifest entry count is invalid");
-  const excluded = new Set([...sourceManifestExcludedPaths, ...additionalExcludedPaths]);
+  if (!Array.isArray(manifest.export_ignored_paths) || manifest.export_ignored_paths.length > 128) throw new Error("source manifest export-ignore inventory is invalid");
+  let previousIgnored = null;
+  for (const relative of manifest.export_ignored_paths) {
+    if (!safeRelativePath(relative) || (previousIgnored !== null && Buffer.from(previousIgnored).compare(Buffer.from(relative)) >= 0)) throw new Error("source manifest export-ignore paths are invalid");
+    previousIgnored = relative;
+  }
+  const excluded = new Set([...sourceManifestExcludedPaths, ...additionalExcludedPaths, ...manifest.export_ignored_paths]);
   const actual = [];
   let previous = null;
   for (const entry of manifest.entries) {

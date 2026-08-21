@@ -75,6 +75,7 @@ describe("workspace policy", () => {
     await writeFile(sourcePath, "source\n");
     const manifestBytes = `${JSON.stringify({
       format: "praxis-source-manifest/v1",
+      export_ignored_paths: [],
       entries: [{ path: "source.txt", mode: "100644", sha256: digest("source\n") }],
     }, null, 2)}\n`;
     await writeFile(manifestPath, manifestBytes);

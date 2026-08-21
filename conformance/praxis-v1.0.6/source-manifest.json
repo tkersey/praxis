@@ -1,5 +1,14 @@
 {
   "format": "praxis-source-manifest/v1",
+  "export_ignored_paths": [
+    "conformance/praxis-v1.0.1/candidate.json",
+    "conformance/praxis-v1.0.2/candidate.json",
+    "conformance/praxis-v1.0.3/candidate.json",
+    "conformance/praxis-v1.0.4/candidate.json",
+    "conformance/praxis-v1.0.5/candidate.json",
+    "conformance/praxis-v1.0.6/candidate.json",
+    "conformance/praxis-v1/candidate.json"
+  ],
   "entries": [
     {
       "path": ".gitattributes",
@@ -37,11 +46,6 @@
       "sha256": "117afe25560853d5e48512ebe52176ed8a047e72a8a9173efbd2304802446fa2"
     },
     {
-      "path": "conformance/praxis-v1.0.1/candidate.json",
-      "mode": "100644",
-      "sha256": "55b4c7f603d2360109667ba024fad0d4b9baa893c3eb25da6c68fce1ff02f04e"
-    },
-    {
       "path": "conformance/praxis-v1.0.1/obstructions/poiesis-replacement-fold/README.md",
       "mode": "100644",
       "sha256": "46253df47b042230b2588a4716127e2ce50e1f8b257e59324e460dd2fe667487"
@@ -50,11 +54,6 @@
       "path": "conformance/praxis-v1.0.1/obstructions/poiesis-replacement-fold/result.json",
       "mode": "100644",
       "sha256": "3a16f4967ab73fa332ce064b854cf5e2f16b1b402699490275130d21d9060079"
-    },
-    {
-      "path": "conformance/praxis-v1.0.2/candidate.json",
-      "mode": "100644",
-      "sha256": "2fa4eab15fd4af070776bfccb214fbca98f3b26907a7b4936b5dbcb1043df395"
     },
     {
       "path": "conformance/praxis-v1.0.2/obstructions/poiesis-birth-budget/README.md",
@@ -67,11 +66,6 @@
       "sha256": "8070948417308b778fa73565a026cce4c79199eb030bc64d80a6a81be617c8d3"
     },
     {
-      "path": "conformance/praxis-v1.0.3/candidate.json",
-      "mode": "100644",
-      "sha256": "7cd7ddbb996dbb60272a9420e61373d74d3a75078f49c7b7e75025b48ad89225"
-    },
-    {
       "path": "conformance/praxis-v1.0.3/obstructions/workspace-budget-parity/README.md",
       "mode": "100644",
       "sha256": "4e0c164e84ede62698f90f9b24d4972205982f1a21fc9ca25e02cf9f5bce0adc"
@@ -82,11 +76,6 @@
       "sha256": "729a87b43ef643e9bab469731da48ef87c1c79c9271fe3ca272cfee894dda4d6"
     },
     {
-      "path": "conformance/praxis-v1.0.4/candidate.json",
-      "mode": "100644",
-      "sha256": "f68b4b9c8634ca52a61392216321fdee4fdb7b7c34f7af4f08458c5bc78789a5"
-    },
-    {
       "path": "conformance/praxis-v1.0.4/obstructions/poiesis-machine-fuel/README.md",
       "mode": "100644",
       "sha256": "c4469b32c077cfafaa4eb1441b7811e7ffeb51f46598a084172a77563ef52132"
@@ -95,11 +84,6 @@
       "path": "conformance/praxis-v1.0.4/obstructions/poiesis-machine-fuel/result.json",
       "mode": "100644",
       "sha256": "2ceaca548040961f77a51123dacc8744157592d0605d5c131606dfd5ed3a048c"
-    },
-    {
-      "path": "conformance/praxis-v1.0.5/candidate.json",
-      "mode": "100644",
-      "sha256": "cb2e2bad84631699bacedbd6805d8d9008f814b5f58cf9c8ef5cee59ce77645a"
     },
     {
       "path": "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/README.md",
@@ -145,11 +129,6 @@
       "path": "conformance/praxis-v1.0.6/obstructions/read-freshness-observability/result.json",
       "mode": "100644",
       "sha256": "f3767ba8afb0b16cfb6bc4503d6857fe3ac56c361d74f8f6205afae16b26a0e4"
-    },
-    {
-      "path": "conformance/praxis-v1/candidate.json",
-      "mode": "100644",
-      "sha256": "e23d52321e079f8b3123add38c81f2f2f56577171ec7b39bf219fa003990f59e"
     },
     {
       "path": "conformance/praxis-v1/obstructions/agent-pre-effect-admission/README.md",
@@ -379,7 +358,7 @@
     {
       "path": "test/workspace-adapter.test.mjs",
       "mode": "100644",
-      "sha256": "038e80233e412a56997713b204a62e40200e3efa2e763cd426b2a4a841c68651"
+      "sha256": "ea7e401c50ad12cbc92032cd009a16611a0596da26e6ddd25c173135164ec764"
     },
     {
       "path": "tools/build-release.mjs",
@@ -449,7 +428,7 @@
     {
       "path": "tools/release-identity.mjs",
       "mode": "100644",
-      "sha256": "fa374006eccddb5cec3157dbe708cd3a103b829885d28674fd7e98ca371f417a"
+      "sha256": "56ebfa28ece2797308be3d8a2d45b6eef28c3d6cd61ee45243156c9c32928e5a"
     },
     {
       "path": "tools/run.mjs",
