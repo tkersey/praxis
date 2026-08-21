@@ -1,16 +1,16 @@
 {
   "format": "praxis-candidate/v1",
-  "praxisCommit": "5b95e1e2f140f8a038d12a1832dd8d75f0bf62dd",
-  "applicationId": "5c48cd096506cc320fed55f67406cf79a82241cc60dc43d00313ae31fe968aee",
-  "applicationWasmSha256": "18eaa2159942e578afd65620cae29fcac68b44ed16a07d853cb87fd3e17a341c",
-  "decisionContractDigest": "ee1d825d5c99ed3cbe8e1a2fef4dfcf00a812a1531a885d9ac268dde754ee811",
-  "bindingManifestSha256": "de2d0427c2610fec3c2f5116f2c4509100484d1d6c160b73468938618b5ab953",
+  "praxisCommit": "fcfd7c40f2f4859df9baca45c5cbbfc39f587c0e",
+  "applicationId": "d9c7744e1ec5e662ff3830dc2d505b4a5777c89cdac8a29d2d8a9da341701ca5",
+  "applicationWasmSha256": "37d48880360180b7ae124ecc23f825b315e67ea347d830f12011591ce33b08f6",
+  "decisionContractDigest": "b9b5d8e66f12aacc476951cf5eab5bab2e8cca8be5e9117346a6d744cb9f63e0",
+  "bindingManifestSha256": "999007d9ab7516d0408dba21e55d3434bd9cafc8fe727449041bc4f3f568f826",
   "workspaceAdapterSha256": "527930ea1e7b997b2f761e5ca4e082b600dc786d7fb458bb3c9011eed0e3d7e4",
   "openaiAdapterSha256": "dd0dca92a4fb04cb059ce6839689aa42ff8a8f6d84664407c59b5ef35b6f69ad",
   "codecsSha256": "f73c15ee12a37b12000a5c9f1a4e9ff45ee72f2d80dee4cc789f696188a42510",
   "referenceStackLockSha256": "2faa97b6ea400bd5ede68ff0db1d5d463deec104253516251990dbc6cf254d12",
-  "deterministicReceiptSha256": "815c9ca84cbaceceaa4b61612ea2c6eca94e6b8ccfb3cb00849acf0dc3dea0ea",
-  "retryReceiptSha256": "18b52c408fff6ae6edec5cd440a67f665e0dbeb90dcec48c1c8b9568b6f3e724",
-  "replayReceiptSha256": "c8db4af9fd06167369b9b3f4167e5ead432e70d65bd9290ed5d415cd9234d5e5",
-  "measureReceiptSha256": "8a52b5eb738570b8b6a974f72a8891670710eb071d2d694f1428bdb28a4ebd8b"
+  "deterministicReceiptSha256": "38ccd72fe672090c65f5a138da5aca87bc2cf8ac9fbc5ce03110528b2b5e4f6d",
+  "retryReceiptSha256": "e026f1b9ac8d181492f68ee0f608185904f4485a1c8045382854d4377a92817a",
+  "replayReceiptSha256": "acf63d16e3ff17d9300d60ca20dd61b35ebf779997fdae17b0aa88c958c34ab1",
+  "measureReceiptSha256": "a3374401a0a3e303a4a6a05a7d2f706f5ff28f55f08b8008f178936bb4373298"
 }
