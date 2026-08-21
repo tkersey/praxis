@@ -1,0 +1,5 @@
+# Model-visible replacement-budget parity correction
+
+Praxis v1.0.4 raised the Machine mutation vector and workspace-adapter ceiling to ten, but its emitted Decision Contract still instructed the model to use at most six replacements and to abort when more capacity was required. Poiesis birth therefore did not exercise one coherent ten-replacement parent envelope.
+
+v1.0.5 derives the model-visible compiled ceiling from `maximum_mutation_operations`, proves the emitted Decision Contract, decision codec, and workspace adapter share that ceiling, and enforces any narrower receiver policy before approval or a new write. Only an exact retained request-bound approval may produce an idempotent already-applied result at the receiver ceiling; a fresh content-equal proposal is denied. Within one admitted live runner process, mutation accounting occurs immediately after atomic rename and before fallible post-write verification, so an in-process retry remains charged. This does not add process-reconstruction or exactly-once external-effect claims before EffectResult persistence. No authority, ABI, effect protocol, file-count bound, or fuel bound changes.

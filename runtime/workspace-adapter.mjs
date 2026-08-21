@@ -200,14 +200,25 @@ export function replacementProposalDigest(context, request) {
   return hasher.digest("hex");
 }
 
-async function approve(context, request, replacementSha256) {
+function approvalRecord(context, request, replacementSha256) {
   const proposalDigest = replacementProposalDigest(context, request);
-  const approval = {
+  return {
     format: "praxis-approval/v1", runId: context.runId, applicationId: context.applicationId,
     requestId: request.requestId, proposalDigest, path: request.payload.path,
     expectedSha256: request.payload.expected_sha256, replacementSha256,
     policyDigest: context.policyDigest, approved: true, mode: "receiver-policy-verified",
   };
+}
+
+function retainApprovalBinding(context, approval) {
+  context.approvalBindings ??= [];
+  if (!context.approvalBindings.some((item) => item.requestId === approval.requestId)) {
+    context.approvalBindings.push({ requestId: approval.requestId, proposalDigest: approval.proposalDigest, path: approval.path, expectedSha256: approval.expectedSha256, replacementSha256: approval.replacementSha256, policyDigest: approval.policyDigest });
+  }
+}
+
+async function approve(context, request, replacementSha256) {
+  const approval = approvalRecord(context, request, replacementSha256);
   await mkdir(context.approvalRoot, { recursive: true, mode: 0o700 });
   const approvalPath = join(context.approvalRoot, `${request.requestId}.json`);
   const encoded = `${canonical(approval)}\n`;
@@ -215,10 +226,18 @@ async function approve(context, request, replacementSha256) {
   catch (error) {
     if (error?.code !== "EEXIST" || await readFile(approvalPath, "utf8") !== encoded) throw error;
   }
-  context.approvalBindings ??= [];
-  if (!context.approvalBindings.some((item) => item.requestId === approval.requestId)) {
-    context.approvalBindings.push({ requestId: approval.requestId, proposalDigest: approval.proposalDigest, path: approval.path, expectedSha256: approval.expectedSha256, replacementSha256: approval.replacementSha256, policyDigest: approval.policyDigest });
-  }
+  retainApprovalBinding(context, approval);
+  return approval;
+}
+
+async function retainedApproval(context, request, replacementSha256) {
+  const approval = approvalRecord(context, request, replacementSha256);
+  const approvalPath = join(context.approvalRoot, `${request.requestId}.json`);
+  let encoded;
+  try { encoded = await readFile(approvalPath, "utf8"); }
+  catch (error) { if (error?.code === "ENOENT") return null; throw error; }
+  if (encoded !== `${canonical(approval)}\n`) throw new Error("approval_record_mismatch");
+  retainApprovalBinding(context, approval);
   return approval;
 }
 
@@ -230,14 +249,26 @@ async function replaceApproved(context, request) {
   const current = await readSnapshot(context, payload.path);
   const replacementBytes = Buffer.from(payload.replacement, "utf8");
   const replacementSha256 = sha256Bytes(replacementBytes);
+  if (current.sha256 === replacementSha256) {
+    if (await retainedApproval(context, request, replacementSha256) === null) {
+      return { outcome: "denied", value: { path: payload.path, reason: "already_applied_without_matching_approval" } };
+    }
+    return { outcome: "applied", value: { path: payload.path, old_sha256: payload.expected_sha256, new_sha256: replacementSha256, already_applied: true, current } };
+  }
+  if ((context.mutationCount ?? 0) >= context.policy.limits.maximumMutationOperations) {
+    return { outcome: "denied", value: { path: payload.path, reason: "mutation_operation_limit_reached" } };
+  }
   await approve(context, request, replacementSha256);
-  if (current.sha256 === replacementSha256) return { outcome: "applied", value: { path: payload.path, old_sha256: payload.expected_sha256, new_sha256: replacementSha256, already_applied: true, current } };
   if (current.sha256 !== payload.expected_sha256) return { outcome: "conflict", value: { path: payload.path, expected_sha256: payload.expected_sha256, actual_sha256: current.sha256 } };
   const temporary = join(dirname(admitted.full), `.praxis-${randomBytes(12).toString("hex")}.tmp`);
   try {
     const handle = await open(temporary, "wx", admitted.info.mode & 0o777);
     try { await handle.writeFile(replacementBytes); await handle.sync(); } finally { await handle.close(); }
     await rename(temporary, admitted.full);
+    context.mutationCount = (context.mutationCount ?? 0) + 1;
+    context.appliedPaths ??= [];
+    context.appliedPaths.push(payload.path);
+    await context.afterReplacementRename?.({ path: payload.path, replacementSha256 });
   } finally { await rm(temporary, { force: true }).catch(() => {}); }
   const final = await readSnapshot(context, payload.path);
   if (final.sha256 !== replacementSha256) throw new Error("replacement_digest_mismatch");
@@ -276,11 +307,6 @@ export async function resolve(context, request) {
     }
     if (request.payload.operation === "replace") {
       const replacement = await replaceApproved(context, request);
-      if (replacement.outcome === "applied" && !replacement.value.already_applied) {
-        context.mutationCount = (context.mutationCount ?? 0) + 1;
-        context.appliedPaths ??= [];
-        context.appliedPaths.push(replacement.value.path);
-      }
       return ok(request, replacement);
     }
     return reject(request, "operation_not_admitted");
@@ -294,4 +320,4 @@ export async function recover(_context, effectRecord) {
   return effectRecord?.recordedResolution ? structuredClone(effectRecord.recordedResolution) : { status: "failed", payload: { reason: "recorded_resolution_required" } };
 }
 
-export const _workspaceInternals = { canonical, sha256Text, validatePathPrefix, readSnapshot, listRepository, searchRepository, spawnCheck };
+export const _workspaceInternals = { canonical, sha256Text, validatePathPrefix, readSnapshot, listRepository, searchRepository, spawnCheck, compiledLimits };

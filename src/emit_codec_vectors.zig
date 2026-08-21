@@ -181,6 +181,44 @@ fn emitDecisionTurns(emitter: *Emitter) !void {
         .s0 => |turn| try emitter.emit("decision_turn_multi_path", "decision_turn", null, @TypeOf(turn), turn),
         else => return error.ExpectedDecisionRequest,
     }
+
+    var next_decision = multi_path;
+    for (1..praxis.maximum_mutation_operations) |index| {
+        const old_digest_byte: u8 = @intCast('a' + index);
+        const new_digest_byte: u8 = @intCast('b' + index);
+        var contents_buffer: [32]u8 = undefined;
+        const contents = try std.fmt.bufPrint(&contents_buffer, "const value = {d};\n", .{index + 1});
+        try resumeRequest(&state, next_decision, praxis.Action{ .replace_file = .{
+            .path = path0,
+            .expected_sha256 = try digest(old_digest_byte),
+            .replacement = try text(praxis.FileText, contents),
+            .rationale = try text(praxis.SummaryText, "Advance the bounded mutation vector."),
+        } });
+        const replace_request = try nextRequest(state);
+        try resumeRequest(&state, replace_request, praxis.ReplaceOutcome{ .applied = .{
+            .path = path0,
+            .old_sha256 = try digest(old_digest_byte),
+            .new_sha256 = try digest(new_digest_byte),
+            .already_applied = false,
+            .current = try snapshot("src/file-0.zig", new_digest_byte, contents),
+        } });
+        next_decision = try nextRequest(state);
+        if (index + 1 < praxis.maximum_mutation_operations) {
+            try resumeRequest(&state, next_decision, praxis.Action{ .run_tests = .{ .suite = .full } });
+            const next_test_request = try nextRequest(state);
+            try resumeRequest(&state, next_test_request, praxis.TestResult{
+                .exit_code = 0,
+                .passed = true,
+                .output = try text(praxis.TestOutput, "all checks passed"),
+                .truncated = false,
+            });
+            next_decision = try nextRequest(state);
+        }
+    }
+    switch (next_decision.value) {
+        .s0 => |turn| try emitter.emit("decision_turn_maximum_mutations", "decision_turn", null, @TypeOf(turn), turn),
+        else => return error.ExpectedDecisionRequest,
+    }
 }
 
 pub fn main(init: std.process.Init) !void {

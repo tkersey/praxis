@@ -23,6 +23,12 @@ const entry = (index) => ({ path: `src/file-${index}.zig`, size_bytes: index + 1
 const hit = (index) => ({ path: `src/file-${index}.zig`, line: index + 1, excerpt: "literal match" });
 const snapshot = (pathValue, character, contents) => ({ path: pathValue, sha256: repeated(character), contents });
 const mutation = { path: "src/file-0.zig", old_sha256: repeated("a"), new_sha256: repeated("b"), already_applied: false };
+const mutationAt = (index) => ({
+  path: "src/file-0.zig",
+  old_sha256: repeated(String.fromCharCode("a".charCodeAt(0) + index)),
+  new_sha256: repeated(String.fromCharCode("b".charCodeAt(0) + index)),
+  already_applied: false,
+});
 const finalResult = { summary: "Repaired and verified.", changed_files: ["src/file-0.zig", "src/file-1.zig"], tests_passed: true, mutation_count: 2 };
 const replaceRequest = { path: "src/main.zig", expected_sha256: repeated("a"), replacement: "const repaired = true;\n", rationale: "Repair behavior." };
 
@@ -52,7 +58,7 @@ const expected = new Map([
   ["result_replace_conflict", { outcome: "conflict", value: { path: "src/main.zig", expected_sha256: repeated("a"), actual_sha256: repeated("c") } }],
 ]);
 
-const contractDigest = "e2cd75ef38b79be58604b154c4f1feda55f8d82f5122f854aadf322457e07038";
+const contractDigest = "822764fac3476f73666a2439422486d557bd4aaf0defcea76dade3c61cd1fc5e";
 const baseTurn = (counters, context) => ({
   contract_digest: contractDigest,
   goal: { task: "Repair the admitted Zig fixture.", repository: "tkersey/fixture", base_revision: "0123456789abcdef0123456789abcdef01234567" },
@@ -79,6 +85,22 @@ const retainedContext = (secondDocument, passing) => ({
 expected.set("decision_turn_empty", baseTurn({ turns: 0, decisions: 0, effect_actions: 0, child_actions: 0 }, emptyContext));
 expected.set("decision_turn_same_path", baseTurn({ turns: 5, decisions: 5, effect_actions: 5, child_actions: 0 }, retainedContext(false, false)));
 expected.set("decision_turn_multi_path", baseTurn({ turns: 7, decisions: 7, effect_actions: 7, child_actions: 0 }, retainedContext(true, true)));
+const maximumMutations = Array.from({ length: 10 }, (_, index) => mutationAt(index));
+expected.set("decision_turn_maximum_mutations", baseTurn(
+  { turns: 24, decisions: 24, effect_actions: 24, child_actions: 0 },
+  {
+    listing: { entries: [entry(0), entry(1)], truncated: false },
+    documents: [
+      snapshot("src/file-0.zig", "k", "const value = 10;\n"),
+      snapshot("src/file-1.zig", "c", "const other = 0;\n"),
+    ],
+    latest_search: { hits: [hit(0)], truncated: false },
+    latest_test: { exit_code: 0, passed: true, output: "all checks passed", truncated: false },
+    latest_replace: { outcome: "applied", value: maximumMutations.at(-1) },
+    mutations: maximumMutations,
+    evidence: { baseline_test_observed: true, latest_test_passed: false, mutation_count: 10, last_test_mutation_count: 9, test_count: 10 },
+  },
+));
 
 function bytes(vector) {
   assert.match(vector.hex, /^(?:[0-9a-f]{2})*$/);

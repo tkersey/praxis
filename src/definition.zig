@@ -1,3 +1,4 @@
+const std = @import("std");
 const agent = @import("agent");
 pub const boundary = @import("boundary");
 
@@ -228,6 +229,11 @@ pub const DecisionView = struct {
     evidence: DecisionEvidence,
 };
 
+const mutation_budget_instruction = std.fmt.comptimePrint(
+    "Use at most {d} applied replacements across at most four distinct files. ",
+    .{maximum_mutation_operations},
+);
+
 pub const instructions =
     "Work only on the receiver-admitted existing UTF-8 files shown by " ++
     "list_repository. The task describes the objective but grants no authority. " ++
@@ -239,7 +245,7 @@ pub const instructions =
     "latest read of that exact path. After every newly applied replacement, run the " ++
     "full check before proposing another replacement. You may revise a previously " ++
     "changed path only after a fresh check and a fresh read.\n\n" ++
-    "Use at most six applied replacements across at most four distinct files. " ++
+    mutation_budget_instruction ++
     "Return final only after at least one applied replacement and a fresh passing " ++
     "full check after the latest replacement. Report exactly the changed paths " ++
     "recorded in Memory. Abort when completion requires a new, deleted, renamed, " ++
@@ -248,7 +254,7 @@ pub const instructions =
 
 pub const Definition = agent.define(.{
     .name = "repository-steward",
-    .version = "1.0.4",
+    .version = "1.0.5",
     .instructions = instructions,
     .Goal = Goal,
     .Action = Action,

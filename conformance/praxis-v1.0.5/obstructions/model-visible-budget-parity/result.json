@@ -1,0 +1,23 @@
+{
+  "format": "praxis-obstruction-correction/v1",
+  "owner": "parent_application_obstruction",
+  "failed_release": "v1.0.4",
+  "failed_model_visible_maximum_replacements": 6,
+  "failed_machine_maximum_mutation_operations": 10,
+  "failed_adapter_maximum_mutation_operations": 10,
+  "successor_model_visible_maximum_replacements": 10,
+  "successor_machine_maximum_mutation_operations": 10,
+  "successor_adapter_maximum_mutation_operations": 10,
+  "successor_decision_codec_maximum_mutations": 10,
+  "receiver_policy_may_narrow": true,
+  "receiver_limit_enforced_before_approval": true,
+  "idempotent_result_permitted_at_receiver_limit": true,
+  "idempotent_result_requires_request_bound_approval": true,
+  "fresh_content_equal_request_denied_without_retained_approval": true,
+  "same_process_write_charged_before_post_write_verification": true,
+  "exactly_once_external_effect_claimed": false,
+  "maximum_changed_files": 4,
+  "machine_abi": 2,
+  "application_abi": 1,
+  "effect_protocol": 1
+}
