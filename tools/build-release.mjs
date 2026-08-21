@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { verifyCandidate } from "./candidate.mjs";
