@@ -56,6 +56,33 @@ function request(operation, payload = {}, requestId = "1".repeat(64)) {
 }
 
 describe("workspace policy", () => {
+  test("v1.0.5 correction evidence is exact and executable", async () => {
+    const correction = JSON.parse(await readFile(new URL("../conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/result.json", import.meta.url), "utf8"));
+    expect(correction).toEqual({
+      format: "praxis-obstruction-correction/v1",
+      owner: "parent_application_obstruction",
+      failed_release: "v1.0.4",
+      failed_model_visible_maximum_replacements: 6,
+      failed_machine_maximum_mutation_operations: 10,
+      failed_adapter_maximum_mutation_operations: 10,
+      successor_model_visible_maximum_replacements: _workspaceInternals.compiledLimits.maximumMutationOperations,
+      successor_machine_maximum_mutation_operations: _workspaceInternals.compiledLimits.maximumMutationOperations,
+      successor_adapter_maximum_mutation_operations: _workspaceInternals.compiledLimits.maximumMutationOperations,
+      successor_decision_codec_maximum_mutations: _workspaceInternals.compiledLimits.maximumMutationOperations,
+      receiver_policy_may_narrow: true,
+      receiver_limit_enforced_before_approval: true,
+      idempotent_result_permitted_at_receiver_limit: true,
+      idempotent_result_requires_request_bound_approval: true,
+      fresh_content_equal_request_denied_without_retained_approval: true,
+      same_process_write_charged_before_post_write_verification: true,
+      exactly_once_external_effect_claimed: false,
+      maximum_changed_files: _workspaceInternals.compiledLimits.maximumChangedFiles,
+      machine_abi: 2,
+      application_abi: 1,
+      effect_protocol: 1,
+    });
+  });
+
   test("model and adapter expose one compiled ceiling while receiver policy may narrow", async () => {
     const contract = JSON.parse(await readFile(new URL("../zig-out/repository-steward/repository-steward.decision-contract.json", import.meta.url), "utf8"));
     const fixturePolicy = JSON.parse(await readFile(new URL("../fixtures/zig-repository-v1/policy.json", import.meta.url), "utf8"));
