@@ -2,14 +2,14 @@
   "praxis_format": 1,
   "mode": "deterministic",
   "source_identity": "git-commit",
-  "candidate_commit": "576d255cb91144983ecfbe31443e7730f35bdb97",
+  "candidate_commit": "9783122e2e96a36c54753348957501a8cf9e9273",
   "source_manifest_sha256": null,
   "application_id": "d9c7744e1ec5e662ff3830dc2d505b4a5777c89cdac8a29d2d8a9da341701ca5",
   "application_wasm_sha256": "37d48880360180b7ae124ecc23f825b315e67ea347d830f12011591ce33b08f6",
   "policy_digest": "365c33e947cc0a3eb9cc0253649fabe15adde32737cdabca2f58cd6b1250d8af",
   "base_revision": "6514479d6c63b4d6f0b4b5aa2c9c58d3f60af4a3",
   "genesis_frame_id": "ac39f691075247ec657667e4df7e00493ed6b43a4d20f006a07f5a63d1215fd9",
-  "terminal_frame_id": "a5d292f94d141a6f7353511f885ec8334ed69d27a010107816d9995532d2c684",
+  "terminal_frame_id": "d965006e94f9705976a263288812edd12fc1cc0d8722d5df4d55c0f6cf3e608d",
   "ordered_interfaces": [
     "model.decide.v1",
     "repo.list.v2",
@@ -42,16 +42,16 @@
   ],
   "approval_bindings": [
     {
-      "request_id": "b7925fdf778977040dd5556af3a0a837d22f0451cf48f288098fc05055195e6a",
-      "proposal_digest": "b482127192752e7a5df2e002b39a1b54d07705f0a0db8c5e5d8722bc273b5cbf",
+      "request_id": "e46d341a10dea592acbbdfa929ca46f9ce194473249ea944f1e17f65cf3ae5f9",
+      "proposal_digest": "64d5b85bc71571428a47b8f387a0d0a0682b18d973e979e0e19a00c02777e7de",
       "path": "src/range.zig",
       "expected_sha256": "eb2861e93f3cc0626c2a0e154d7914bb1dfa0b82b92303fb10c3c24144a6f81a",
       "replacement_sha256": "cc1c87cdbdb47bbda911b86d4b9de7bc4a9bd466b869ac6cfdad3c46433c8da4",
       "policy_digest": "365c33e947cc0a3eb9cc0253649fabe15adde32737cdabca2f58cd6b1250d8af"
     },
     {
-      "request_id": "fbde815b96b1a3a952ed0e7350544997d17be73d74e512325950430b21dca1d2",
-      "proposal_digest": "d8ef1baaa46c78938dddfa6b00306923971924a05a4d10e05cb16924645e4220",
+      "request_id": "0cd882c526fe177e5a8f4d4b73568e776b84305bcecc51f672990affbd51a887",
+      "proposal_digest": "1d42b119cd12c383e908b1c4bea7dd0a3990e360cd250b099f64955ee7c84e0c",
       "path": "test/range_test.zig",
       "expected_sha256": "b03579cdc1615b1180ff6b2f51dc2b6f123b2056e7a3083f244aaf988f526661",
       "replacement_sha256": "13488bf6bba9590aa167507e661064ee8d8521e34e34860d133fa23c770f324a",
