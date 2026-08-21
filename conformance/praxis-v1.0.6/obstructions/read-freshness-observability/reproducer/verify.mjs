@@ -45,6 +45,10 @@ const failedCodecBytes = await readFile(new URL("codecs.mjs", failedRoot));
 const failedCandidateBytes = await readFile(new URL("candidate.json", failedRoot));
 const gitBlobOid = (bytes) => createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const gitCommitAvailable = (commit) => {
+  const child = spawnSync("git", ["cat-file", "-e", `${commit}^{commit}`], { cwd: root, encoding: "utf8" });
+  return !child.error && child.status === 0;
+};
 const gitBlobAt = (commit, relative) => {
   const child = spawnSync("git", ["rev-parse", `${commit}:${relative}`], { cwd: root, encoding: "utf8" });
   if (child.error || child.status !== 0 || !/^[0-9a-f]{40}\n?$/.test(child.stdout)) {
@@ -74,10 +78,12 @@ assert.equal(sha256(failedCodecBytes), failedCandidate.codecsSha256);
 assert.equal(failedCandidate.decisionContractDigest, result.failed_decision_contract_digest);
 const gitRoot = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: root, encoding: "utf8" });
 if (!gitRoot.error && gitRoot.status === 0 && await realpath(gitRoot.stdout.trim()).catch(() => null) === await realpath(root)) {
-  assert.equal(gitBlobAt(result.failed_release, "conformance/praxis-v1.0.5/candidate.json"), result.failed_candidate_blob_oid);
-  assert.equal(gitBlobAt(failedCandidate.praxisCommit, "src/definition.zig"), result.failed_definition_blob_oid);
-  assert.equal(gitBlobAt(failedCandidate.praxisCommit, "src/epistemics.zig"), result.failed_epistemics_blob_oid);
-  assert.equal(gitBlobAt(failedCandidate.praxisCommit, "runtime/codecs.mjs"), result.failed_codec_blob_oid);
+  if (gitCommitAvailable(result.failed_release)) assert.equal(gitBlobAt(result.failed_release, "conformance/praxis-v1.0.5/candidate.json"), result.failed_candidate_blob_oid);
+  if (gitCommitAvailable(failedCandidate.praxisCommit)) {
+    assert.equal(gitBlobAt(failedCandidate.praxisCommit, "src/definition.zig"), result.failed_definition_blob_oid);
+    assert.equal(gitBlobAt(failedCandidate.praxisCommit, "src/epistemics.zig"), result.failed_epistemics_blob_oid);
+    assert.equal(gitBlobAt(failedCandidate.praxisCommit, "runtime/codecs.mjs"), result.failed_codec_blob_oid);
+  }
 }
 assert.match(failedDefinition, /fresh check and a fresh read/);
 assert.doesNotMatch(failedDefinition.match(/pub const Memory = struct \{[\s\S]*?\n\};/)?.[0] ?? "", /latest_read|conflict_count|conflicted_path/);

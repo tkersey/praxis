@@ -49,6 +49,55 @@ async function sourceEntry(root, relative, expectedMode = null) {
   return { path: relative, mode, sha256: sha256(await readFile(absolute)) };
 }
 
+function gitBytes(root, args, label) {
+  const result = spawnSync("git", args, { cwd: root, encoding: null, maxBuffer: 128 * 1024 * 1024 });
+  if (result.error || result.status !== 0) throw new Error(`${label} is unavailable`);
+  return Buffer.from(result.stdout);
+}
+
+export function committedFileBytesAt(root, commit, relative) {
+  if (!/^[0-9a-f]{40}$/.test(commit) || !safeRelativePath(relative)) throw new Error("committed source identity is invalid");
+  return gitBytes(root, ["show", `${commit}:${relative}`], `committed source ${relative}`);
+}
+
+export async function createSourceManifestFromCommitAt(root, commit) {
+  if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error("source manifest commit is invalid");
+  const tree = spawnSync("git", ["ls-tree", "-rz", "--full-tree", commit], { cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+  if (tree.error || tree.status !== 0) throw new Error("committed source tree is unavailable");
+  const tracked = [];
+  for (const record of tree.stdout.split("\0").filter(Boolean)) {
+    const separator = record.indexOf("\t");
+    if (separator < 0) throw new Error("committed source tree is malformed");
+    const [mode, type, oid] = record.slice(0, separator).split(" ");
+    const relative = record.slice(separator + 1);
+    if (type !== "blob" || !["100644", "100755"].includes(mode) || !/^[0-9a-f]{40}$/.test(oid)) throw new Error(`unsupported committed source entry: ${relative}`);
+    tracked.push({ mode, oid, relative });
+  }
+  const archive = gitBytes(root, ["archive", "--format=tar", commit], "committed source archive");
+  const inventory = spawnSync("tar", ["-tf", "-"], { cwd: root, input: archive, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+  if (inventory.error || inventory.status !== 0) throw new Error("committed source archive inventory is unavailable");
+  const archivedPaths = new Set(inventory.stdout.split("\n").filter((relative) => relative !== "" && !relative.endsWith("/")));
+  const excluded = new Set(sourceManifestExcludedPaths);
+  const exportIgnoredPaths = [];
+  const entries = [];
+  for (const { mode, oid, relative } of tracked) {
+    if (!archivedPaths.has(relative)) exportIgnoredPaths.push(relative);
+    else if (!excluded.has(relative)) entries.push({ path: relative, mode, sha256: sha256(gitBytes(root, ["cat-file", "blob", oid], `committed source blob ${relative}`)) });
+  }
+  exportIgnoredPaths.sort((left, right) => Buffer.from(left).compare(Buffer.from(right)));
+  entries.sort((left, right) => Buffer.from(left.path).compare(Buffer.from(right.path)));
+  return { format: "praxis-source-manifest/v1", export_ignored_paths: exportIgnoredPaths, entries };
+}
+
+export async function verifyCommittedSourceManifestAt(root, commit, expectedDigest) {
+  const bytes = committedFileBytesAt(root, commit, sourceManifestRelative);
+  if (sha256(bytes) !== expectedDigest) throw new Error("committed source manifest digest mismatch");
+  const actual = JSON.parse(bytes);
+  const expected = await createSourceManifestFromCommitAt(root, commit);
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("committed source differs from its source manifest");
+  return actual;
+}
+
 export async function createSourceManifestAt(root = repositoryRoot) {
   const listed = spawnSync("git", ["ls-files", "--stage", "-z"], { cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
   if (listed.error || listed.status !== 0) throw new Error("source manifest requires an exact Git checkout");
@@ -187,4 +236,8 @@ export async function verifyCurrentSourceManifest() {
 
 export async function verifyCheckoutSourceManifest() {
   return verifyCheckoutSourceManifestAt(repositoryRoot, sourceManifestPath);
+}
+
+export async function verifyCommittedSourceManifest(commit, expectedDigest) {
+  return verifyCommittedSourceManifestAt(repositoryRoot, commit, expectedDigest);
 }

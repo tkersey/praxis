@@ -3,7 +3,15 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { releaseVersion, sourceManifestPath, verifyCheckoutSourceManifest, versionedCandidatePath, versionedConformanceRelative } from "./release-identity.mjs";
+import {
+  committedFileBytesAt,
+  releaseVersion,
+  sourceManifestPath,
+  verifyCheckoutSourceManifest,
+  verifyCommittedSourceManifest,
+  versionedCandidatePath,
+  versionedConformanceRelative,
+} from "./release-identity.mjs";
 
 export const defaultCandidatePath = versionedCandidatePath;
 
@@ -112,6 +120,7 @@ export async function freezeCandidate({ output = defaultCandidatePath } = {}) {
 export async function verifyCandidate(candidatePath) {
   const candidate = assertCandidateShape(await json(path.resolve(candidatePath)));
   const inputs = await candidateInputs();
+  await verifyCommittedSourceManifest(candidate.praxisCommit, candidate.sourceManifestSha256);
   const expected = {
     applicationId: inputs.binding.applicationId,
     applicationWasmSha256: await digestFile(path.join(artifactsRoot, "repository-steward.world.wasm")),
@@ -128,6 +137,14 @@ export async function verifyCandidate(candidatePath) {
     measureReceiptSha256: await digestFile(path.join(conformanceRoot, "receipts/measure.json")),
   };
   for (const [key, value] of Object.entries(expected)) if (candidate[key] !== value) throw new Error(`candidate ${key} mismatch`);
+  for (const [field, relative] of [
+    ["deterministicReceiptSha256", "conformance/praxis-v1/receipts/deterministic.json"],
+    ["retryReceiptSha256", "conformance/praxis-v1/receipts/retry.json"],
+    ["replayReceiptSha256", "conformance/praxis-v1/receipts/replay.json"],
+    ["measureReceiptSha256", "conformance/praxis-v1/receipts/measure.json"],
+  ]) {
+    if (createHash("sha256").update(committedFileBytesAt(repositoryRoot, candidate.praxisCommit, relative)).digest("hex") !== candidate[field]) throw new Error(`candidate ${field} differs from committed source`);
+  }
   const protectedDiff = git(["diff", "--quiet", candidate.praxisCommit, "HEAD", "--", ...protectedCandidatePaths], { allowFailure: true });
   if (protectedDiff.status !== 0) throw new Error("candidate protected files changed after freeze");
   return Object.freeze(candidate);
