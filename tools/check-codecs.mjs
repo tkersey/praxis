@@ -58,7 +58,7 @@ const expected = new Map([
   ["result_replace_conflict", { outcome: "conflict", value: { path: "src/main.zig", expected_sha256: repeated("a"), actual_sha256: repeated("c") } }],
 ]);
 
-const contractDigest = "31043a38d56e7da441546e509be84ba7fdc7fc79513de3d3de7701874024a5d7";
+const contractDigest = "837d54cdc23ea97ae337ec0433ba638fefc3eed76687f949d29282a79cea0246";
 const baseTurn = (counters, context) => ({
   contract_digest: contractDigest,
   goal: { task: "Repair the admitted Zig fixture.", repository: "tkersey/fixture", base_revision: "0123456789abcdef0123456789abcdef01234567" },
@@ -69,7 +69,7 @@ const baseTurn = (counters, context) => ({
 });
 const emptyContext = {
   listing: null, documents: [], latest_search: null, latest_test: null, latest_replace: null, mutations: [],
-  evidence: { baseline_test_observed: false, latest_test_passed: false, mutation_count: 0, last_test_mutation_count: 0, test_count: 0, latest_read: { path: "", observed_test_count: 0 } },
+  evidence: { baseline_test_observed: false, latest_test_passed: false, mutation_count: 0, last_test_mutation_count: 0, test_count: 0, latest_read: { path: "", observed_test_count: 0 }, conflicted_path: "" },
 };
 const retainedContext = (secondDocument, passing) => ({
   listing: { entries: [entry(0), entry(1)], truncated: false },
@@ -80,7 +80,7 @@ const retainedContext = (secondDocument, passing) => ({
     : { exit_code: 1, passed: false, output: "check failed", truncated: false },
   latest_replace: { outcome: "applied", value: mutation },
   mutations: [mutation],
-  evidence: { baseline_test_observed: true, latest_test_passed: passing, mutation_count: 1, last_test_mutation_count: passing ? 1 : 0, test_count: passing ? 2 : 1, latest_read: { path: "src/file-0.zig", observed_test_count: passing ? 2 : 0 } },
+  evidence: { baseline_test_observed: true, latest_test_passed: passing, mutation_count: 1, last_test_mutation_count: passing ? 1 : 0, test_count: passing ? 2 : 1, latest_read: { path: "src/file-0.zig", observed_test_count: passing ? 2 : 0 }, conflicted_path: "" },
 });
 expected.set("decision_turn_empty", baseTurn({ turns: 0, decisions: 0, effect_actions: 0, child_actions: 0 }, emptyContext));
 expected.set("decision_turn_same_path", baseTurn({ turns: 5, decisions: 5, effect_actions: 5, child_actions: 0 }, retainedContext(false, false)));
@@ -98,7 +98,7 @@ expected.set("decision_turn_maximum_mutations", baseTurn(
     latest_test: { exit_code: 0, passed: true, output: "all checks passed", truncated: false },
     latest_replace: { outcome: "applied", value: maximumMutations.at(-1) },
     mutations: maximumMutations,
-    evidence: { baseline_test_observed: true, latest_test_passed: false, mutation_count: 10, last_test_mutation_count: 9, test_count: 10, latest_read: { path: "src/file-0.zig", observed_test_count: 10 } },
+    evidence: { baseline_test_observed: true, latest_test_passed: false, mutation_count: 10, last_test_mutation_count: 9, test_count: 10, latest_read: { path: "src/file-0.zig", observed_test_count: 10 }, conflicted_path: "" },
   },
 ));
 

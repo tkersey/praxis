@@ -10,8 +10,8 @@ import {
   resolve,
   _workspaceInternals,
 } from "../runtime/workspace-adapter.mjs";
-import { releaseCandidatePath, releaseVersion } from "../tools/build-release.mjs";
-import { protectedCandidatePaths } from "../tools/candidate.mjs";
+import { releaseCandidatePath, releaseVersion, successorReleaseFormat } from "../tools/build-release.mjs";
+import { defaultCandidatePath, protectedCandidatePaths } from "../tools/candidate.mjs";
 
 const roots = [];
 afterEach(async () => { while (roots.length > 0) await rm(roots.pop(), { recursive: true, force: true }); });
@@ -61,6 +61,8 @@ describe("workspace policy", () => {
   test("release builder derives the current package identity", () => {
     expect(releaseVersion).toBe("1.0.6");
     expect(releaseCandidatePath).toEndWith("/conformance/praxis-v1.0.6/candidate.json");
+    expect(defaultCandidatePath).toBe(releaseCandidatePath);
+    expect(successorReleaseFormat).toBe("praxis-successor-artifact-release/v1");
     expect(protectedCandidatePaths).toContain("conformance/praxis-v1.0.6/obstructions/read-freshness-observability");
   });
 
@@ -97,18 +99,24 @@ describe("workspace policy", () => {
       format: "praxis-obstruction-correction/v1",
       owner: "parent_application_obstruction",
       failed_release: "v1.0.5",
+      failed_release_tag_commit: "f46ebdf9e333950eb9577b7391fd7acbd8772923",
+      failed_definition_blob_oid: "bbabb5ef6b1bf22553da47ecd25f39c0ebc33218",
+      failed_epistemics_blob_oid: "a5af1419fd150124d9201ae275a7a0c9b98a6756",
+      failed_codec_blob_oid: "aa79ae42421e2f59fb660ffb7eb7bcb8c3b84ae3",
+      failed_candidate_blob_oid: "57b3c7ee379403af4587c6b8cde7ac23d9743aee",
+      failed_decision_contract_digest: "822764fac3476f73666a2439422486d557bd4aaf0defcea76dade3c61cd1fc5e",
       failed_instruction_requires_fresh_read: true,
       failed_decision_view_exposes_read_epoch: false,
-      failed_terminal_failure: "Boundary Machine execution budget exceeded",
       successor_read_evidence_typed: true,
       successor_read_evidence_contains_path: true,
       successor_read_evidence_contains_observed_test_count: true,
       successor_changed_path_revision_requires_current_read_evidence: true,
       successor_new_check_stales_prior_read_evidence: true,
+      successor_conflict_invalidates_read_evidence: true,
       successor_model_instructions_name_read_evidence: true,
-      successor_application_id: "cbc39c24cd93cb09f4d3549fff3f63bb392e0e8eff07835d6bb0bd61e916f1b2",
-      successor_decision_contract_digest: "31043a38d56e7da441546e509be84ba7fdc7fc79513de3d3de7701874024a5d7",
-      selected_model_changed: false,
+      successor_implementation_semantic_identity: "agent.epistemics.praxis-zig-working-set.lowering.v2",
+      successor_application_id: "e55755adf5d3c9a492b9f54d53c7946e9d8103a05d20e429dbb5d18e0cc09909",
+      successor_decision_contract_digest: "837d54cdc23ea97ae337ec0433ba638fefc3eed76687f949d29282a79cea0246",
       maximum_replacements: 10,
       maximum_changed_files: 4,
       machine_abi: 2,

@@ -4,15 +4,17 @@ import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/pr
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { verifyCandidate } from "./candidate.mjs";
+import {
+  releasePrefix,
+  releaseVersion,
+  repositoryRoot,
+  successorReleaseFormat,
+  versionedCandidatePath,
+} from "./release-identity.mjs";
 
-const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const conformanceRoot = path.join(repositoryRoot, "conformance/praxis-v1");
-const packageManifest = await readFile(path.join(repositoryRoot, "build.zig.zon"), "utf8");
-const versionMatch = packageManifest.match(/\.version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"/);
-if (!versionMatch) throw new Error("package version is missing");
-export const releaseVersion = versionMatch[1];
-export const releaseCandidatePath = path.join(repositoryRoot, `conformance/praxis-v${releaseVersion}/candidate.json`);
-const prefix = `praxis-v${releaseVersion}`;
+export { releaseVersion, successorReleaseFormat, versionedCandidatePath as releaseCandidatePath };
+const prefix = releasePrefix;
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 function command(executable, args, options = {}) {
@@ -28,7 +30,7 @@ async function tarDirectory(source, target) {
 }
 
 export async function buildRelease({ outputRoot = path.join(repositoryRoot, "release") } = {}) {
-  const candidate = await verifyCandidate(releaseCandidatePath);
+  const candidate = await verifyCandidate(versionedCandidatePath);
   await mkdir(outputRoot, { recursive: true });
   const temporary = await mkdtemp(path.join(tmpdir(), "praxis-release-"));
   try {
@@ -41,7 +43,26 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
     await copy("zig-out/repository-steward", artifactRoot); await copy("zig-out/bin/praxis-initial-args", artifactRoot);
     await copy("fixtures/zig-repository-v1", artifactRoot);
     for (const name of ["deterministic", "retry", "replay", "measure"]) await copy(`conformance/praxis-v1/receipts/${name}.json`, artifactRoot);
+    await cp(versionedCandidatePath, path.join(artifactRoot, "candidate.json"));
+    await copy("conformance/praxis-v1.0.6/obstructions/read-freshness-observability", artifactRoot);
     const artifactArchive = path.join(outputRoot, `${prefix}-artifacts.tar.gz`); await tarDirectory(path.dirname(artifactRoot), artifactArchive);
+    await cp(versionedCandidatePath, path.join(outputRoot, `${prefix}-candidate.json`));
+    const successorReceipt = {
+      format: successorReleaseFormat,
+      release: `v${releaseVersion}`,
+      proof_scope: "application-artifacts-and-lifecycle",
+      candidate_commit: candidate.praxisCommit,
+      application_id: candidate.applicationId,
+      application_wasm_sha256: candidate.applicationWasmSha256,
+      decision_contract_digest: candidate.decisionContractDigest,
+      deterministic_receipt_sha256: candidate.deterministicReceiptSha256,
+      retry_receipt_sha256: candidate.retryReceiptSha256,
+      replay_receipt_sha256: candidate.replayReceiptSha256,
+      measure_receipt_sha256: candidate.measureReceiptSha256,
+      live_execution_claimed: false,
+      publication_claimed: false,
+    };
+    await writeFile(path.join(outputRoot, `${prefix}-successor-receipt.json`), `${JSON.stringify(successorReceipt, null, 2)}\n`);
     const assetNames = (await readdir(outputRoot)).filter((name) => name.startsWith(prefix) && name !== `${prefix}-checksums.txt`).sort();
     const lines = [];
     for (const name of assetNames) lines.push(`${sha256(await readFile(path.join(outputRoot, name)))}  ${name}`);
@@ -50,11 +71,11 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
       const entries = command("tar", ["-tzf", archive]).stdout;
       if (/(^|\/)\.env($|\n)|runtime-store|OPENAI_API_KEY/.test(entries)) throw new Error(`forbidden release archive entry in ${path.basename(archive)}`);
     }
-    return Object.freeze({ outputRoot, assets: [...assetNames, `${prefix}-checksums.txt`] });
+    return Object.freeze({ format: successorReleaseFormat, outputRoot, assets: [...assetNames, `${prefix}-checksums.txt`] });
   } finally { await rm(temporary, { recursive: true, force: true }); }
 }
 
 if (import.meta.main) {
   const result = await buildRelease();
-  process.stdout.write(`praxis_release_assets=${result.assets.length}\n`);
+  process.stdout.write(`praxis_successor_release_assets=${result.assets.length}\n`);
 }

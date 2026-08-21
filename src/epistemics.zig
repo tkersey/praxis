@@ -1,6 +1,6 @@
 pub fn WorkingSet(comptime agent: type, comptime T: type) type {
     return struct {
-        pub const semantic_identity = "agent.epistemics.praxis-zig-working-set.lowering.v1";
+        pub const semantic_identity = T.implementation_semantic_identity;
         pub const lowering_complexity: usize = 25;
 
         const DocumentLookup = struct {
@@ -138,6 +138,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                     .path = empty_path,
                     .observed_test_count = 0,
                 },
+                .conflicted_path = empty_path,
             };
         }
 
@@ -430,6 +431,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 mutation_count,
                 flow.integerAdd(flow.productExtract(10, memory), flow.constant(u32, context.one_index)),
                 flow.productExtract(11, memory),
+                flow.productExtract(12, memory),
             });
         }
 
@@ -524,6 +526,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 flow.productExtract(9, duplicate_values[0]),
                 flow.productExtract(10, duplicate_values[0]),
                 flow.productExtract(11, duplicate_values[0]),
+                flow.productExtract(12, duplicate_values[0]),
             })});
 
             const new_values = flow.enter(new_mutation);
@@ -564,6 +567,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 flow.productExtract(9, apply_values[0]),
                 flow.productExtract(10, apply_values[0]),
                 flow.productExtract(11, apply_values[0]),
+                flow.productExtract(12, apply_values[0]),
             })});
             return flow.enter(joined)[0];
         }
@@ -599,7 +603,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
             )});
 
             const conflict_values = flow.enter(conflict);
-            flow.jump(joined, .{replaceMemoryField(
+            var next = replaceMemoryField(
                 flow,
                 conflict_values[0],
                 4,
@@ -607,7 +611,14 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                     ?T.ReplaceSummary,
                     flow.sumConstruct(T.ReplaceSummary, 2, flow.sumExtract(2, conflict_values[1])),
                 ),
-            )});
+            );
+            next = replaceMemoryField(
+                flow,
+                next,
+                12,
+                flow.productExtract(0, flow.sumExtract(2, conflict_values[1])),
+            );
+            flow.jump(joined, .{next});
             return flow.enter(joined)[0];
         }
 
@@ -623,6 +634,17 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 flow.productExtract(10, memory),
             });
             next = replaceMemoryField(flow, next, 11, evidence);
+            const conflicted_path = flow.productExtract(12, memory);
+            next = replaceMemoryField(
+                flow,
+                next,
+                12,
+                flow.select(
+                    textEqual(flow, flow.productExtract(0, snapshot), conflicted_path),
+                    flow.constant(T.Path, context.empty_path_index),
+                    conflicted_path,
+                ),
+            );
             return next;
         }
 
@@ -726,6 +748,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 flow.productExtract(9, memory),
                 flow.productExtract(10, memory),
                 flow.productExtract(11, memory),
+                flow.productExtract(12, memory),
             });
             return flow.productConstruct(T.DecisionView, .{
                 flow.productExtract(0, memory),
@@ -755,6 +778,8 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 context,
             );
             const latest_read = flow.productExtract(11, memory);
+            const conflicted_path = flow.productExtract(12, memory);
+            const path_is_conflicted = textEqual(flow, conflicted_path, path);
             const revised_path_read_fresh = flow.booleanAnd(
                 textEqual(flow, flow.productExtract(0, latest_read), path),
                 flow.integerEqual(
@@ -763,7 +788,7 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 ),
             );
             const read_requirement_satisfied = flow.booleanOr(
-                flow.booleanNot(path_admission.known),
+                flow.booleanNot(flow.booleanOr(path_admission.known, path_is_conflicted)),
                 revised_path_read_fresh,
             );
             const lookup = findDocument(flow, documents, path, context);

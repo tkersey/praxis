@@ -215,6 +215,7 @@ pub const Memory = struct {
     last_test_mutation_count: u32,
     test_count: u32,
     latest_read: ReadEvidence,
+    conflicted_path: Path,
 };
 
 pub const DecisionEvidence = struct {
@@ -224,6 +225,7 @@ pub const DecisionEvidence = struct {
     last_test_mutation_count: u32,
     test_count: u32,
     latest_read: ReadEvidence,
+    conflicted_path: Path,
 };
 
 pub const DecisionView = struct {
@@ -321,6 +323,7 @@ pub const Definition = agent.define(.{
 });
 
 pub const Strategy = agent.strategy.react(.{});
+pub const implementation_semantic_identity = "agent.epistemics.praxis-zig-working-set.lowering.v2";
 pub const Epistemics = agent.epistemics.custom(.{
     .semantic_identity = "agent.epistemics.praxis-zig-working-set.v1",
     .config = .{},

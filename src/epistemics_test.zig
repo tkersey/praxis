@@ -168,6 +168,7 @@ test "initial projection" {
     try std.testing.expectEqual(@as(u32, 0), memory.test_count);
     try std.testing.expectEqualStrings("", try memory.latest_read.path.slice());
     try std.testing.expectEqual(@as(u32, 0), memory.latest_read.observed_test_count);
+    try std.testing.expectEqualStrings("", try memory.conflicted_path.slice());
 }
 
 test "listing and search replacement" {
@@ -357,10 +358,38 @@ test "denied and conflicting replacements do not mutate memory" {
         try std.testing.expectEqual(@as(u32, 0), view.evidence.mutation_count);
         try std.testing.expectEqual(@as(u32, 0), try view.mutations.len());
         try std.testing.expect(view.evidence.latest_test_passed);
+        if (conflict) try std.testing.expectEqualStrings(try path.slice(), try view.evidence.conflicted_path.slice()) else try std.testing.expectEqualStrings("", try view.evidence.conflicted_path.slice());
     }
 }
 
-test "six operation limit rejects the seventh replacement before effect emission" {
+test "conflict invalidates read evidence until the exact path is reread" {
+    var state = try newState();
+    defer Machine.deinitState(state);
+    const path = try indexedPath(0);
+    try driveEffect(&state, readAction(path), try snapshot(path, 0, "old"));
+    try driveEffect(&state, testAction(), try testResult(true));
+    try driveEffect(&state, try replaceAction(path, 0), praxis.ReplaceOutcome{ .conflict = .{
+        .path = path,
+        .expected_sha256 = try digest(0),
+        .actual_sha256 = try digest(1),
+    } });
+
+    var rejected = try Machine.cloneState(std.testing.allocator, state);
+    defer Machine.deinitState(rejected);
+    try expectRejectedAction(&rejected, try replaceAction(path, 0), .invalid_variant);
+
+    try driveEffect(&state, readAction(path), try snapshot(path, 1, "external"));
+    const inspected = try Machine.cloneState(std.testing.allocator, state);
+    defer Machine.deinitState(inspected);
+    const read_view = try decisionView(try nextRequest(inspected));
+    try std.testing.expectEqualStrings("", try read_view.evidence.conflicted_path.slice());
+    try std.testing.expectEqualStrings(try path.slice(), try read_view.evidence.latest_read.path.slice());
+    try driveEffect(&state, try replaceAction(path, 1), try appliedOutcome(path, 1, 2, false));
+    const view = try decisionView(try nextRequest(state));
+    try std.testing.expectEqual(@as(u32, 1), view.evidence.mutation_count);
+}
+
+test "ten operation limit rejects the eleventh replacement before effect emission" {
     var state = try newState();
     defer Machine.deinitState(state);
     const path = try indexedPath(0);
@@ -450,6 +479,10 @@ test "compiled repository steward preserves semantic identity and machine envelo
     try std.testing.expectEqualStrings(
         "agent.epistemics.praxis-zig-working-set.v1",
         praxis.Epistemics.semantic_identity,
+    );
+    try std.testing.expectEqualStrings(
+        "agent.epistemics.praxis-zig-working-set.lowering.v2",
+        praxis.implementation_semantic_identity,
     );
     try std.testing.expect(praxis.Compiled.Epistemics == praxis.Epistemics);
 }

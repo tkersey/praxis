@@ -3,6 +3,9 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fsp from "node:fs/promises";
 import path from "node:path";
+import { versionedCandidatePath } from "./release-identity.mjs";
+
+export const defaultCandidatePath = versionedCandidatePath;
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const conformanceRoot = path.join(repositoryRoot, "conformance/praxis-v1");
@@ -59,7 +62,7 @@ export async function candidateInputs() {
   return { binding, deterministic, retry, replay, measure };
 }
 
-export async function freezeCandidate({ output = path.join(conformanceRoot, "candidate.json") } = {}) {
+export async function freezeCandidate({ output = defaultCandidatePath } = {}) {
   if (git(["status", "--porcelain=v1", "--untracked-files=all"]).stdout !== "") throw new Error("candidate freeze requires a clean working tree");
   const inputs = await candidateInputs();
   const candidate = {
