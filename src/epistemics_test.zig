@@ -168,7 +168,8 @@ test "initial projection" {
     try std.testing.expectEqual(@as(u32, 0), memory.test_count);
     try std.testing.expectEqualStrings("", try memory.latest_read.path.slice());
     try std.testing.expectEqual(@as(u32, 0), memory.latest_read.observed_test_count);
-    try std.testing.expectEqualStrings("", try memory.conflicted_path.slice());
+    try std.testing.expectEqual(@as(u32, 0), memory.latest_read.observed_conflict_count);
+    try std.testing.expectEqual(@as(u32, 0), memory.conflict_count);
 }
 
 test "listing and search replacement" {
@@ -207,6 +208,7 @@ test "document upsert and reread" {
     try std.testing.expect(document.sha256.eql(&expected));
     try std.testing.expectEqualStrings(try path.slice(), try view.evidence.latest_read.path.slice());
     try std.testing.expectEqual(@as(u32, 0), view.evidence.latest_read.observed_test_count);
+    try std.testing.expectEqual(@as(u32, 0), view.evidence.latest_read.observed_conflict_count);
 }
 
 test "eleventh document overflows before committed memory mutation" {
@@ -358,7 +360,7 @@ test "denied and conflicting replacements do not mutate memory" {
         try std.testing.expectEqual(@as(u32, 0), view.evidence.mutation_count);
         try std.testing.expectEqual(@as(u32, 0), try view.mutations.len());
         try std.testing.expect(view.evidence.latest_test_passed);
-        if (conflict) try std.testing.expectEqualStrings(try path.slice(), try view.evidence.conflicted_path.slice()) else try std.testing.expectEqualStrings("", try view.evidence.conflicted_path.slice());
+        try std.testing.expectEqual(@as(u32, @intFromBool(conflict)), view.evidence.conflict_count);
     }
 }
 
@@ -366,13 +368,19 @@ test "conflict invalidates read evidence until the exact path is reread" {
     var state = try newState();
     defer Machine.deinitState(state);
     const path = try indexedPath(0);
-    try driveEffect(&state, readAction(path), try snapshot(path, 0, "old"));
     try driveEffect(&state, testAction(), try testResult(true));
+    try driveEffect(&state, readAction(path), try snapshot(path, 0, "old"));
     try driveEffect(&state, try replaceAction(path, 0), praxis.ReplaceOutcome{ .conflict = .{
         .path = path,
         .expected_sha256 = try digest(0),
         .actual_sha256 = try digest(1),
     } });
+
+    const conflict_view_state = try Machine.cloneState(std.testing.allocator, state);
+    defer Machine.deinitState(conflict_view_state);
+    const conflict_view = try decisionView(try nextRequest(conflict_view_state));
+    try std.testing.expectEqual(@as(u32, 1), conflict_view.evidence.conflict_count);
+    try std.testing.expectEqual(@as(u32, 0), conflict_view.evidence.latest_read.observed_conflict_count);
 
     var rejected = try Machine.cloneState(std.testing.allocator, state);
     defer Machine.deinitState(rejected);
@@ -382,11 +390,37 @@ test "conflict invalidates read evidence until the exact path is reread" {
     const inspected = try Machine.cloneState(std.testing.allocator, state);
     defer Machine.deinitState(inspected);
     const read_view = try decisionView(try nextRequest(inspected));
-    try std.testing.expectEqualStrings("", try read_view.evidence.conflicted_path.slice());
     try std.testing.expectEqualStrings(try path.slice(), try read_view.evidence.latest_read.path.slice());
+    try std.testing.expectEqual(read_view.evidence.conflict_count, read_view.evidence.latest_read.observed_conflict_count);
     try driveEffect(&state, try replaceAction(path, 1), try appliedOutcome(path, 1, 2, false));
     const view = try decisionView(try nextRequest(state));
     try std.testing.expectEqual(@as(u32, 1), view.evidence.mutation_count);
+}
+
+test "multiple conflicts keep every pre-conflict read stale" {
+    var state = try newState();
+    defer Machine.deinitState(state);
+    const first = try indexedPath(0);
+    const second = try indexedPath(1);
+    try driveEffect(&state, testAction(), try testResult(true));
+    try driveEffect(&state, readAction(first), try snapshot(first, 0, "first"));
+    try driveEffect(&state, try replaceAction(first, 0), praxis.ReplaceOutcome{ .conflict = .{
+        .path = first,
+        .expected_sha256 = try digest(0),
+        .actual_sha256 = try digest(1),
+    } });
+    try driveEffect(&state, readAction(second), try snapshot(second, 2, "second"));
+    try driveEffect(&state, try replaceAction(second, 2), praxis.ReplaceOutcome{ .conflict = .{
+        .path = second,
+        .expected_sha256 = try digest(2),
+        .actual_sha256 = try digest(3),
+    } });
+
+    var rejected = try Machine.cloneState(std.testing.allocator, state);
+    defer Machine.deinitState(rejected);
+    try expectRejectedAction(&rejected, try replaceAction(first, 0), .invalid_variant);
+    try driveEffect(&state, readAction(first), try snapshot(first, 1, "first refreshed"));
+    try driveEffect(&state, try replaceAction(first, 1), try appliedOutcome(first, 1, 4, false));
 }
 
 test "ten operation limit rejects the eleventh replacement before effect emission" {
@@ -403,8 +437,8 @@ test "ten operation limit rejects the eleventh replacement before effect emissio
         }
     }
     try driveEffect(&state, testAction(), try testResult(true));
-    try driveEffect(&state, readAction(path), try snapshot(path, 6, "sixth revision"));
-    try expectRejectedAction(&state, try replaceAction(path, 6), .invalid_variant);
+    try driveEffect(&state, readAction(path), try snapshot(path, praxis.maximum_mutation_operations, "final revision"));
+    try expectRejectedAction(&state, try replaceAction(path, praxis.maximum_mutation_operations), .invalid_variant);
 }
 
 test "four distinct path limit rejects the fifth path before effect emission" {

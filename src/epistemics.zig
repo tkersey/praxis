@@ -137,8 +137,9 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 .latest_read = .{
                     .path = empty_path,
                     .observed_test_count = 0,
+                    .observed_conflict_count = 0,
                 },
-                .conflicted_path = empty_path,
+                .conflict_count = 0,
             };
         }
 
@@ -616,7 +617,10 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 flow,
                 next,
                 12,
-                flow.productExtract(0, flow.sumExtract(2, conflict_values[1])),
+                flow.integerAdd(
+                    flow.productExtract(12, conflict_values[0]),
+                    flow.constant(u32, context.one_index),
+                ),
             );
             flow.jump(joined, .{next});
             return flow.enter(joined)[0];
@@ -632,19 +636,9 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
             const evidence = flow.productConstruct(T.ReadEvidence, .{
                 flow.productExtract(0, snapshot),
                 flow.productExtract(10, memory),
+                flow.productExtract(12, memory),
             });
             next = replaceMemoryField(flow, next, 11, evidence);
-            const conflicted_path = flow.productExtract(12, memory);
-            next = replaceMemoryField(
-                flow,
-                next,
-                12,
-                flow.select(
-                    textEqual(flow, flow.productExtract(0, snapshot), conflicted_path),
-                    flow.constant(T.Path, context.empty_path_index),
-                    conflicted_path,
-                ),
-            );
             return next;
         }
 
@@ -778,17 +772,20 @@ pub fn WorkingSet(comptime agent: type, comptime T: type) type {
                 context,
             );
             const latest_read = flow.productExtract(11, memory);
-            const conflicted_path = flow.productExtract(12, memory);
-            const path_is_conflicted = textEqual(flow, conflicted_path, path);
+            const conflict_count = flow.productExtract(12, memory);
+            const conflicts_observed = flow.booleanNot(flow.compareEqZero(conflict_count));
             const revised_path_read_fresh = flow.booleanAnd(
                 textEqual(flow, flow.productExtract(0, latest_read), path),
-                flow.integerEqual(
-                    flow.productExtract(1, latest_read),
-                    flow.productExtract(10, memory),
+                flow.booleanAnd(
+                    flow.integerEqual(
+                        flow.productExtract(1, latest_read),
+                        flow.productExtract(10, memory),
+                    ),
+                    flow.integerEqual(flow.productExtract(2, latest_read), conflict_count),
                 ),
             );
             const read_requirement_satisfied = flow.booleanOr(
-                flow.booleanNot(flow.booleanOr(path_admission.known, path_is_conflicted)),
+                flow.booleanNot(flow.booleanOr(path_admission.known, conflicts_observed)),
                 revised_path_read_fresh,
             );
             const lookup = findDocument(flow, documents, path, context);

@@ -200,6 +200,7 @@ pub const Mutations = boundary.Vector(MutationSummary, maximum_mutation_operatio
 pub const ReadEvidence = struct {
     path: Path,
     observed_test_count: u32,
+    observed_conflict_count: u32,
 };
 
 pub const Memory = struct {
@@ -215,7 +216,7 @@ pub const Memory = struct {
     last_test_mutation_count: u32,
     test_count: u32,
     latest_read: ReadEvidence,
-    conflicted_path: Path,
+    conflict_count: u32,
 };
 
 pub const DecisionEvidence = struct {
@@ -225,7 +226,7 @@ pub const DecisionEvidence = struct {
     last_test_mutation_count: u32,
     test_count: u32,
     latest_read: ReadEvidence,
-    conflicted_path: Path,
+    conflict_count: u32,
 };
 
 pub const DecisionView = struct {

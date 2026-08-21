@@ -8,5 +8,7 @@ if (matches.length !== 1) throw new Error("package version must occur exactly on
 
 export const releaseVersion = matches[0][1];
 export const releasePrefix = `praxis-v${releaseVersion}`;
-export const versionedCandidatePath = path.join(repositoryRoot, `conformance/praxis-v${releaseVersion}/candidate.json`);
+export const versionedConformanceRelative = `conformance/praxis-v${releaseVersion}`;
+export const versionedConformanceRoot = path.join(repositoryRoot, versionedConformanceRelative);
+export const versionedCandidatePath = path.join(versionedConformanceRoot, "candidate.json");
 export const successorReleaseFormat = "praxis-successor-artifact-release/v1";

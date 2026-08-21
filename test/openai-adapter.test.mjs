@@ -11,7 +11,7 @@ const request = {
     goal: { task: "repair", repository: "tkersey/fixture", base_revision: "0".repeat(40) },
     counters: { turns: 0, decisions: 0, effect_actions: 0, child_actions: 0 },
     phase: "decide",
-    context: { listing: null, documents: [], latest_search: null, latest_test: null, latest_replace: null, mutations: [], evidence: { baseline_test_observed: false, latest_test_passed: false, mutation_count: 0, last_test_mutation_count: 0, test_count: 0, latest_read: { path: "", observed_test_count: 0 }, conflicted_path: "" } },
+    context: { listing: null, documents: [], latest_search: null, latest_test: null, latest_replace: null, mutations: [], evidence: { baseline_test_observed: false, latest_test_passed: false, mutation_count: 0, last_test_mutation_count: 0, test_count: 0, latest_read: { path: "", observed_test_count: 0, observed_conflict_count: 0 }, conflict_count: 0 } },
     strategy_local: null,
   },
 };

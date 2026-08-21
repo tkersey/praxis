@@ -10,6 +10,7 @@ import {
   repositoryRoot,
   successorReleaseFormat,
   versionedCandidatePath,
+  versionedConformanceRelative,
 } from "./release-identity.mjs";
 
 const conformanceRoot = path.join(repositoryRoot, "conformance/praxis-v1");
@@ -44,7 +45,7 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
     await copy("fixtures/zig-repository-v1", artifactRoot);
     for (const name of ["deterministic", "retry", "replay", "measure"]) await copy(`conformance/praxis-v1/receipts/${name}.json`, artifactRoot);
     await cp(versionedCandidatePath, path.join(artifactRoot, "candidate.json"));
-    await copy("conformance/praxis-v1.0.6/obstructions/read-freshness-observability", artifactRoot);
+    await copy(versionedConformanceRelative, artifactRoot);
     const artifactArchive = path.join(outputRoot, `${prefix}-artifacts.tar.gz`); await tarDirectory(path.dirname(artifactRoot), artifactArchive);
     await cp(versionedCandidatePath, path.join(outputRoot, `${prefix}-candidate.json`));
     const successorReceipt = {
@@ -70,6 +71,7 @@ export async function buildRelease({ outputRoot = path.join(repositoryRoot, "rel
     for (const archive of [sourceArchive, runtimeArchive, artifactArchive]) {
       const entries = command("tar", ["-tzf", archive]).stdout;
       if (/(^|\/)\.env($|\n)|runtime-store|OPENAI_API_KEY/.test(entries)) throw new Error(`forbidden release archive entry in ${path.basename(archive)}`);
+      if (archive === sourceArchive && /\/conformance\/praxis-v[^/]*\/candidate\.json(?:\n|$)/.test(entries)) throw new Error("source archive contains a self-freezing candidate record");
     }
     return Object.freeze({ format: successorReleaseFormat, outputRoot, assets: [...assetNames, `${prefix}-checksums.txt`] });
   } finally { await rm(temporary, { recursive: true, force: true }); }

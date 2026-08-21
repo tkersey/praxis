@@ -11,7 +11,7 @@ const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const conformanceRoot = path.join(repositoryRoot, "conformance/praxis-v1");
 const artifactsRoot = path.join(repositoryRoot, "zig-out/repository-steward");
 export const protectedCandidatePaths = Object.freeze([
-  "build.zig", "build.zig.zon", "src", "runtime", "fixtures", "test",
+  ".gitattributes", "build.zig", "build.zig.zon", "src", "runtime", "fixtures", "test",
   "tools", "package.json", "conformance/praxis-v1/reference-stack.lock.json",
   "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/README.md",
   "conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/result.json",
