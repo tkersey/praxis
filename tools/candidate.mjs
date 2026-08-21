@@ -35,6 +35,21 @@ function requireDigest(value, label) {
   return value;
 }
 
+const candidateKeys = Object.freeze([
+  "format", "praxisCommit", "applicationId", "applicationWasmSha256",
+  "decisionContractDigest", "bindingManifestSha256", "workspaceAdapterSha256",
+  "openaiAdapterSha256", "codecsSha256", "referenceStackLockSha256",
+  "deterministicReceiptSha256", "retryReceiptSha256", "replayReceiptSha256",
+  "measureReceiptSha256",
+].sort());
+
+export function assertCandidateShape(candidate) {
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) throw new Error("candidate must be an object");
+  if (candidate.format !== "praxis-candidate/v1" || !/^[0-9a-f]{40}$/.test(candidate.praxisCommit)) throw new Error("candidate format is invalid");
+  if (JSON.stringify(Object.keys(candidate).sort()) !== JSON.stringify(candidateKeys)) throw new Error("candidate fields are not exact");
+  return candidate;
+}
+
 export async function candidateInputs() {
   const [binding, deterministic, retry, replay, measure] = await Promise.all([
     json(path.join(artifactsRoot, "repository-steward.binding-manifest.json")),
@@ -86,8 +101,7 @@ export async function freezeCandidate({ output = defaultCandidatePath } = {}) {
 }
 
 export async function verifyCandidate(candidatePath) {
-  const candidate = await json(path.resolve(candidatePath));
-  if (candidate.format !== "praxis-candidate/v1" || !/^[0-9a-f]{40}$/.test(candidate.praxisCommit)) throw new Error("candidate format is invalid");
+  const candidate = assertCandidateShape(await json(path.resolve(candidatePath)));
   const inputs = await candidateInputs();
   const expected = {
     applicationId: inputs.binding.applicationId,

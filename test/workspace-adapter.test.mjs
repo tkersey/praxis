@@ -11,7 +11,7 @@ import {
   _workspaceInternals,
 } from "../runtime/workspace-adapter.mjs";
 import { releaseCandidatePath, releaseVersion, successorReleaseFormat } from "../tools/build-release.mjs";
-import { defaultCandidatePath, protectedCandidatePaths } from "../tools/candidate.mjs";
+import { assertCandidateShape, defaultCandidatePath, protectedCandidatePaths } from "../tools/candidate.mjs";
 
 const roots = [];
 afterEach(async () => { while (roots.length > 0) await rm(roots.pop(), { recursive: true, force: true }); });
@@ -66,6 +66,12 @@ describe("workspace policy", () => {
     expect(protectedCandidatePaths).toContain("conformance/praxis-v1.0.6/obstructions/read-freshness-observability");
   });
 
+  test("candidate admission rejects unknown release claims", async () => {
+    const candidate = JSON.parse(await readFile(new URL("../conformance/praxis-v1.0.6/candidate.json", import.meta.url), "utf8"));
+    expect(() => assertCandidateShape(candidate)).not.toThrow();
+    expect(() => assertCandidateShape({ ...candidate, publication_claimed: true })).toThrow(/fields are not exact/);
+  });
+
   test("v1.0.5 correction evidence is exact and executable", async () => {
     const correction = JSON.parse(await readFile(new URL("../conformance/praxis-v1.0.5/obstructions/model-visible-budget-parity/result.json", import.meta.url), "utf8"));
     expect(correction).toEqual({
@@ -115,8 +121,8 @@ describe("workspace policy", () => {
       successor_conflict_invalidates_read_evidence: true,
       successor_model_instructions_name_read_evidence: true,
       successor_implementation_semantic_identity: "agent.epistemics.praxis-zig-working-set.lowering.v2",
-      successor_application_id: "729ba44a81d4c7492e9ba1ed5c8bc936e449c7ab5160e811f68fe88f96ca3f1a",
-      successor_decision_contract_digest: "c11fb0d2fee123eecb0e54a791cc6f433d55f888db8b1a3e02583901fbf61831",
+      successor_application_id: "5c48cd096506cc320fed55f67406cf79a82241cc60dc43d00313ae31fe968aee",
+      successor_decision_contract_digest: "ee1d825d5c99ed3cbe8e1a2fef4dfcf00a812a1531a885d9ac268dde754ee811",
       maximum_replacements: 10,
       maximum_changed_files: 4,
       machine_abi: 2,

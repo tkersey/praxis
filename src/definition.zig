@@ -255,10 +255,13 @@ pub const instructions =
     "latest read of that exact path. After every newly applied replacement, run the " ++
     "full check before proposing another replacement. You may revise a previously " ++
     "changed path only after a fresh check and a fresh read. DecisionView.evidence " ++
-    "records the latest read path and its observed test count; a changed-path " ++
-    "revision is admissible only when that path matches and the observed test count " ++
-    "equals the current test count. Once it matches, do not reread unchanged bytes; " ++
-    "propose the corrected replacement.\n\n" ++
+    "records the latest read path and its observed test and conflict counts. A " ++
+    "changed-path revision is admissible only when that path matches and both " ++
+    "observed counts equal the current counts. After any replacement conflict, the " ++
+    "conflict count advances and every later replacement, including a new path, " ++
+    "requires an exact-path reread at the current conflict count. Once the path and " ++
+    "both counts match, do not reread unchanged bytes; propose the corrected " ++
+    "replacement.\n\n" ++
     mutation_budget_instruction ++
     "Return final only after at least one applied replacement and a fresh passing " ++
     "full check after the latest replacement. Report exactly the changed paths " ++
