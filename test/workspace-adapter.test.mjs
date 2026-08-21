@@ -127,6 +127,9 @@ describe("workspace policy", () => {
     const clean = await sourceReceiptIdentityAt(root, join(root, "unused-candidate.json"), join(root, "unused-manifest.json"));
     expect(clean.source_identity).toBe("git-commit");
     expect(clean.candidate_commit).toMatch(/^[0-9a-f]{40}$/);
+    await mkdir(join(root, "zig-pkg"));
+    await writeFile(join(root, "zig-pkg/generated"), "generated\n");
+    expect((await sourceReceiptIdentityAt(root, join(root, "unused-candidate.json"), join(root, "unused-manifest.json"))).source_identity).toBe("git-commit");
     await writeFile(join(root, "source.txt"), "modified\n");
     await expect(sourceReceiptIdentityAt(root, join(root, "unused-candidate.json"), join(root, "unused-manifest.json"))).rejects.toThrow(/clean source tree/);
   });

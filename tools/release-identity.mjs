@@ -200,12 +200,15 @@ export async function sourceReceiptIdentityAt(root, candidatePath, manifestPath 
       realpath(gitRoot.stdout.trim()).catch(() => null),
     ]);
     if (resolvedGitRoot === resolvedRoot) {
-      const allowedDirtyPaths = sourceManifestExcludedPaths.filter((relative) => relative !== sourceManifestRelative);
+      const allowedDirtyPaths = [
+        ...sourceManifestExcludedPaths.filter((relative) => relative !== sourceManifestRelative),
+        ...ignoredGeneratedPaths,
+      ];
       const status = spawnSync("git", [
         "status", "--porcelain=v1", "--untracked-files=all", "--", ".",
         ...allowedDirtyPaths.map((relative) => `:(exclude)${relative}`),
       ], { cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
-      if (status.error || status.status !== 0 || status.stdout !== "") throw new Error("Git source identity requires a clean source tree");
+      if (status.error || status.status !== 0 || status.stdout !== "") throw new Error(`Git source identity requires a clean source tree${status.stdout === "" ? "" : `\n${status.stdout}`}`);
       const git = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" });
       if (!git.error && git.status === 0 && /^[0-9a-f]{40}\n?$/.test(git.stdout)) {
         return { source_identity: "git-commit", candidate_commit: git.stdout.trim(), source_manifest_sha256: null };
