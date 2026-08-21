@@ -4,14 +4,34 @@ import { _liveInternals } from "../tools/live.mjs";
 describe("live runner invariants", () => {
   test("requires a baseline check and a fresh check after every replacement", () => {
     expect(_liveInternals.testSequenceIsFresh([
-      "model.decide.v1", "repo.test.v2", "repo.replace.approved.v2",
-      "model.decide.v1", "repo.test.v2", "repo.replace.approved.v2",
-      "model.decide.v1", "repo.test.v2", "model.decide.v1",
+      { interfaceLabel: "model.decide.v1", newlyApplied: false },
+      { interfaceLabel: "repo.test.v2", newlyApplied: false },
+      { interfaceLabel: "repo.replace.approved.v2", newlyApplied: true },
+      { interfaceLabel: "model.decide.v1", newlyApplied: false },
+      { interfaceLabel: "repo.test.v2", newlyApplied: false },
+      { interfaceLabel: "repo.replace.approved.v2", newlyApplied: true },
+      { interfaceLabel: "model.decide.v1", newlyApplied: false },
+      { interfaceLabel: "repo.test.v2", newlyApplied: false },
     ])).toBe(true);
-    expect(_liveInternals.testSequenceIsFresh(["repo.replace.approved.v2", "repo.test.v2"])).toBe(false);
-    expect(_liveInternals.testSequenceIsFresh(["repo.test.v2", "repo.replace.approved.v2"])).toBe(false);
     expect(_liveInternals.testSequenceIsFresh([
-      "repo.test.v2", "repo.replace.approved.v2", "repo.replace.approved.v2", "repo.test.v2",
+      { interfaceLabel: "repo.replace.approved.v2", newlyApplied: true },
+      { interfaceLabel: "repo.test.v2", newlyApplied: false },
     ])).toBe(false);
+    expect(_liveInternals.testSequenceIsFresh([
+      { interfaceLabel: "repo.test.v2", newlyApplied: false },
+      { interfaceLabel: "repo.replace.approved.v2", newlyApplied: true },
+    ])).toBe(false);
+    expect(_liveInternals.testSequenceIsFresh([
+      { interfaceLabel: "repo.test.v2", newlyApplied: false },
+      { interfaceLabel: "repo.replace.approved.v2", newlyApplied: true },
+      { interfaceLabel: "repo.replace.approved.v2", newlyApplied: true },
+      { interfaceLabel: "repo.test.v2", newlyApplied: false },
+    ])).toBe(false);
+    expect(_liveInternals.testSequenceIsFresh([
+      { interfaceLabel: "repo.test.v2", newlyApplied: false },
+      { interfaceLabel: "repo.replace.approved.v2", newlyApplied: false },
+      { interfaceLabel: "repo.replace.approved.v2", newlyApplied: true },
+      { interfaceLabel: "repo.test.v2", newlyApplied: false },
+    ])).toBe(true);
   });
 });

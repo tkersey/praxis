@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 import * as openaiAdapter from "../runtime/openai-adapter.mjs";
 import * as workspaceAdapter from "../runtime/workspace-adapter.mjs";
 import { createPraxisRouter } from "../runtime/bindings.mjs";
-import { decodeFinalResult } from "../runtime/codecs.mjs";
+import { decodeEffectResult, decodeFinalResult } from "../runtime/codecs.mjs";
 import { verifyCandidate } from "./candidate.mjs";
 import { verifyFinalWorktree } from "./verify-final-worktree.mjs";
 
@@ -50,11 +50,11 @@ function publicApproval(value) {
   return { request_id: value.requestId, proposal_digest: value.proposalDigest, path: value.path, expected_sha256: value.expectedSha256, replacement_sha256: value.replacementSha256, policy_digest: value.policyDigest };
 }
 
-function testSequenceIsFresh(interfaces) {
+function testSequenceIsFresh(events) {
   let mutations = 0; let lastTestMutationCount = -1;
-  for (const label of interfaces) {
-    if (label === "repo.test.v2") lastTestMutationCount = mutations;
-    if (label === "repo.replace.approved.v2") {
+  for (const event of events) {
+    if (event.interfaceLabel === "repo.test.v2") lastTestMutationCount = mutations;
+    if (event.interfaceLabel === "repo.replace.approved.v2" && event.newlyApplied) {
       if (lastTestMutationCount !== mutations) return false;
       mutations += 1;
     }
@@ -101,7 +101,7 @@ async function writeFailure(options, runId, details) {
 export async function runLive(options) {
   const runId = `live-${new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14)}-${randomUUID()}`;
   const runRoot = path.join(options.store, "runs", runId);
-  let candidate = null; const orderedInterfaces = []; let terminalStatus = null; let context = null;
+  let candidate = null; const orderedInterfaces = []; const freshnessEvents = []; let terminalStatus = null; let context = null;
   try {
     if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is required");
     if (!process.env.OPENAI_MODEL) throw new Error("OPENAI_MODEL is required");
@@ -179,6 +179,12 @@ export async function runLive(options) {
       process.stderr.write(`effect=${orderedInterfaces.length} interface=${interfaceEntry.interfaceLabel}\n`);
       const inspected = router.inspect(frame.pendingEffect.encodedBytes); assert.equal(inspected.effectAttempted, false);
       const resolution = await router.resolve(context, frame.pendingEffect.encodedBytes);
+      let newlyApplied = false;
+      if (interfaceEntry.interfaceLabel === "repo.replace.approved.v2" && resolution.result.resultBytes !== null) {
+        const outcome = decodeEffectResult("replace", resolution.result.resultBytes);
+        newlyApplied = outcome.outcome === "applied" && !outcome.value.already_applied;
+      }
+      freshnessEvents.push({ interfaceLabel: interfaceEntry.interfaceLabel, newlyApplied });
       if (interfaceEntry.interfaceLabel === "model.decide.v1" && resolution.result.hostClaims.length > 0) {
         const claim = JSON.parse(utf8.decode(resolution.result.hostClaims)); providerClaims.push(claim);
       }
@@ -190,7 +196,7 @@ export async function runLive(options) {
     const terminal = transition.frame; const finalResult = decodeFinalResult(terminal.finalResultBytes);
     const changedPaths = command("git", ["diff", "--name-only", options.baseRevision, "--"], { cwd: worktree }).stdout.trim().split("\n").filter(Boolean);
     assert.deepEqual(finalResult.changed_files, changedPaths); assert.equal(finalResult.mutation_count, context.mutationCount); assert.equal(finalResult.tests_passed, true);
-    assert.ok(testSequenceIsFresh(orderedInterfaces));
+    assert.ok(testSequenceIsFresh(freshnessEvents));
     const terminalFileDigests = {};
     for (const changed of changedPaths) {
       const info = await lstat(path.join(worktree, changed)); if (!info.isFile()) throw new Error("terminal changed path is not a file");
