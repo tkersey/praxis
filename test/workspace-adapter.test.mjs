@@ -144,18 +144,18 @@ describe("workspace policy", () => {
   });
 
   test("release builder derives the current package identity", () => {
-    expect(releaseVersion).toBe("1.0.6");
-    expect(releaseCandidatePath).toEndWith("/conformance/praxis-v1.0.6/candidate.json");
+    expect(releaseVersion).toBe("1.0.7");
+    expect(releaseCandidatePath).toEndWith("/conformance/praxis-v1.0.7/candidate.json");
     expect(defaultCandidatePath).toBe(releaseCandidatePath);
     expect(successorReleaseFormat).toBe("praxis-successor-artifact-release/v1");
-    expect(protectedCandidatePaths).toContain("conformance/praxis-v1.0.6");
-    expect(protectedCandidatePaths).toContain(":(exclude)conformance/praxis-v1.0.6/candidate.json");
+    expect(protectedCandidatePaths).toContain("conformance/praxis-v1.0.7");
+    expect(protectedCandidatePaths).toContain(":(exclude)conformance/praxis-v1.0.7/candidate.json");
   });
 
   test("source candidate overlay is byte-deterministic", () => {
     const emptyArchive = Buffer.alloc(1024);
     const contents = Buffer.from("{\"candidate\":true}\n");
-    const name = "praxis-1.0.6/conformance/praxis-v1.0.6/candidate.json";
+    const name = "praxis-1.0.7/conformance/praxis-v1.0.7/candidate.json";
     const first = _releaseInternals.appendTarFile(emptyArchive, name, contents);
     const second = _releaseInternals.appendTarFile(emptyArchive, name, contents);
     expect(first.equals(second)).toBeTrue();
